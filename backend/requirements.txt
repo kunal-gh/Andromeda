@@ -1,12 +1,10 @@
-"""
-Andromeda — requirements.txt
-
-Phase 0: Core (existing)
-Phase 1: LangGraph
-Phase 2: MCP (commented — enable when running mcp stack)
-Phase 3: RAG
-Phase 5: Observability
-"""
+# Andromeda — requirements.txt
+#
+# Phase 0: Core (existing)
+# Phase 1: LangGraph
+# Phase 2: MCP (commented — enable when running mcp stack)
+# Phase 3: RAG
+# Phase 5: Observability
 
 # ── Core API ──────────────────────────────────────────────────────
 fastapi>=0.115,<0.117
