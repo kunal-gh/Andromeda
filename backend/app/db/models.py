@@ -88,6 +88,7 @@ class RefundRequest(Base):
     order_id: Mapped[str | None] = mapped_column(String, nullable=True)
     decision: Mapped[str] = mapped_column(String, nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
+    injection_detected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -98,5 +99,23 @@ class Escalation(Base):
     conversation_id: Mapped[str] = mapped_column(ForeignKey("conversations.id"), index=True, nullable=False)
     order_id: Mapped[str | None] = mapped_column(String, nullable=True)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EvaluationRun(Base):
+    """Phase 4 — stores RAGAS + DeepEval evaluation results per run."""
+    __tablename__ = "evaluation_runs"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)  # UUID run_id
+    dataset_path: Mapped[str] = mapped_column(String, nullable=False)
+    sample_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    faithfulness: Mapped[float | None] = mapped_column(Float, nullable=True)
+    answer_relevancy: Mapped[float | None] = mapped_column(Float, nullable=True)
+    context_precision: Mapped[float | None] = mapped_column(Float, nullable=True)
+    context_recall: Mapped[float | None] = mapped_column(Float, nullable=True)
+    composite_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    overall_pass: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    status: Mapped[str] = mapped_column(String, default="pending", nullable=False)  # pending | running | done | error
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

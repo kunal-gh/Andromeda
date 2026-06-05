@@ -1,0 +1,173 @@
+name: Andromeda CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+jobs:
+  # ── Job 1: Backend Tests ────────────────────────────────────────────────
+  backend-tests:
+    name: Backend — pytest (56 policy tests)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install fastapi uvicorn sqlalchemy pydantic-settings python-dotenv \
+                      google-genai groq openai langgraph langchain-core \
+                      pytest pytest-asyncio pytest-cov
+
+      - name: Run policy tests
+        env:
+          LLM_PROVIDER: mock
+          DATABASE_URL: "sqlite:///./test_andromeda.db"
+          BUSINESS_TODAY: "2025-01-15"
+        run: |
+          python -m pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: backend/.coverage
+
+  # ── Job 2: Backend Lint ─────────────────────────────────────────────────
+  backend-lint:
+    name: Backend — ruff lint
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint
+        run: ruff check app/ tests/ --ignore E501,E402
+
+  # ── Job 3: Frontend Type-check ──────────────────────────────────────────
+  frontend-typecheck:
+    name: Frontend — TypeScript typecheck
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+  # ── Job 4: Evaluation Smoke Test ────────────────────────────────────────
+  evaluation-smoke:
+    name: Evaluation — 3-sample smoke test
+    runs-on: ubuntu-latest
+    needs: backend-tests  # Only run if tests pass
+
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install fastapi sqlalchemy pydantic-settings python-dotenv \
+                      google-genai groq openai langgraph langchain-core
+
+      - name: Run smoke evaluation
+        env:
+          LLM_PROVIDER: mock
+          DATABASE_URL: "sqlite:///./eval_smoke.db"
+          BUSINESS_TODAY: "2025-01-15"
+          PYTHONPATH: backend
+        run: |
+          python evaluation/run_eval.py \
+            --dataset evaluation/datasets/golden_v1.json \
+            --smoke \
+            --output evaluation/reports/smoke_report.json
+
+      - name: Upload eval report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-smoke-report
+          path: evaluation/reports/smoke_report.json
+
+  # ── Job 5: Docker Build Check ───────────────────────────────────────────
+  docker-build:
+    name: Docker — build check
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-typecheck]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          tags: andromeda-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: false
+          tags: andromeda-frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
