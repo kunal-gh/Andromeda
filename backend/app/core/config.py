@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -9,7 +10,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "Andromeda — Enterprise AI Agent Platform"
-    database_url: str = "sqlite:///./data/andromeda.db"
+    database_url: str = Field(
+        default="sqlite:////tmp/andromeda.db" if os.environ.get("VERCEL") else "sqlite:///./data/andromeda.db"
+    )
     business_today: str = "2025-01-15"
     frontend_origin: str = "http://localhost:3000"
 
