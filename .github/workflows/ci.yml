@@ -35,7 +35,7 @@ jobs:
           pip install --upgrade pip
           pip install fastapi uvicorn sqlalchemy pydantic-settings python-dotenv \
                       google-genai groq openai langgraph langchain-core \
-                      pytest pytest-asyncio pytest-cov
+                      pytest pytest-asyncio pytest-cov opentelemetry-api langfuse httpx
 
       - name: Run policy tests
         env:
@@ -121,7 +121,8 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install fastapi sqlalchemy pydantic-settings python-dotenv \
-                      google-genai groq openai langgraph langchain-core
+                      google-genai groq openai langgraph langchain-core \
+                      opentelemetry-api langfuse httpx
 
       - name: Run smoke evaluation
         env:
