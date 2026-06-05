@@ -736,7 +736,7 @@ Where:
 *   $f \in \{0, 1\}$ is a boolean flag indicating if the item was sold as final sale.
 *   $r \in \{0, 1\}$ is a boolean flag indicating if a refund has already been processed for this order.
 *   $c \in \text{Categories}$ is the item category classification.
-*   $s \in \{\text{pending}, \text{in\_transit}, \text{delivered}\}$ is the physical shipping status.
+*   $s \in \{\text{pending}, \text{in\\_transit}, \text{delivered}\}$ is the physical shipping status.
 
 Let the request email validation be represented as a boolean flag:
 
@@ -755,8 +755,8 @@ $$\text{Decisions} = \{\text{APPROVED}, \text{DENIED}, \text{ESCALATED}\}$$
 The function is formulated as follows:
 
 $$D(o, m, \text{risk}) = \begin{cases}
-\text{DENIED}, & \text{if } (m = 0) \lor (s \neq \text{delivered}) \lor (c \in \{\text{digital}, \text{gift\_card}\}) \lor (f = 1) \lor (r = 1) \lor (d > 30) \\
-\text{ESCALATED}, & \text{if } (p > 500) \lor (o.\text{condition\_note} \in \{\text{damaged}, \text{opened}, \text{used}\}) \lor ((\text{risk} = \text{HIGH}) \land (p > 100)) \\
+\text{DENIED}, & \text{if } (m = 0) \lor (s \neq \text{delivered}) \lor (c \in \{\text{digital}, \text{gift\\_card}\}) \lor (f = 1) \lor (r = 1) \lor (d > 30) \\
+\text{ESCALATED}, & \text{if } (p > 500) \lor (o.\text{condition\\_note} \in \{\text{damaged}, \text{opened}, \text{used}\}) \lor ((\text{risk} = \text{HIGH}) \land (p > 100)) \\
 \text{APPROVED}, & \text{otherwise}
 \end{cases}$$
 
