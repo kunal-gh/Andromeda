@@ -55,10 +55,13 @@ async def _run_case(case: dict) -> dict:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
     from app.db.database import SessionLocal
+    from app.db.seed import init_db, seed_if_empty
     from app.agent.runner import run_refund_agent
     from app.models.schemas import ChatRequest
 
+    init_db()
     db = SessionLocal()
+    seed_if_empty(db)
     try:
         request = ChatRequest(
             conversation_id=str(uuid.uuid4()),

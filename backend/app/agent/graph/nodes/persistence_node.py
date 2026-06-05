@@ -11,10 +11,9 @@ This is always the last node before END.
 
 from langchain_core.runnables import RunnableConfig
 
-from app.agent.events import record_trace, serialize_trace_event
+from app.agent.events import record_trace
 from app.agent.graph.state import AgentState
-from app.db.models import Conversation, Message, RefundRequest, TraceEvent
-from sqlalchemy import select
+from app.db.models import Conversation, Message, RefundRequest
 
 
 async def persistence_node(state: AgentState, config: RunnableConfig) -> dict:

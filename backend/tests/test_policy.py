@@ -10,7 +10,6 @@ Coverage:
 from datetime import date
 from types import SimpleNamespace
 
-import pytest
 
 from app.agent.guardrails import scan_for_injection
 from app.agent.policy import evaluate_order_policy

@@ -10,7 +10,6 @@ exactly as before — the signature is unchanged.
 """
 
 import uuid
-from typing import Any
 
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session

@@ -12,7 +12,6 @@ separate container in production (see docker-compose.yml Phase 3 extension).
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import TypedDict
 

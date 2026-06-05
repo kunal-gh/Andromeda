@@ -114,8 +114,8 @@ def evaluate_order_policy(
     if fraud_risk and fraud_risk.upper() == "HIGH" and order.price > 100:
         triggered.append("R10_HIGH_FRAUD_RISK")
         facts.append(
-            f"This account is flagged as HIGH fraud-risk. "
-            f"Refund requests over $100 require human review for such accounts."
+            "This account is flagged as HIGH fraud-risk. "
+            "Refund requests over $100 require human review for such accounts."
         )
         risks.append("HIGH_FRAUD_RISK")
         return PolicyEvaluation(

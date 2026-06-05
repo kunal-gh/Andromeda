@@ -11,11 +11,9 @@ Langfuse is free on cloud.langfuse.com (no credit card required).
 
 from __future__ import annotations
 
-import functools
-import os
 import time
 from contextlib import contextmanager
-from typing import Any, Callable
+from typing import Any
 
 from app.core.config import get_settings
 
