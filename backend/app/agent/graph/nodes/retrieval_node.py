@@ -6,12 +6,14 @@ Phase 3: Connects to ChromaDB, returns top-K semantically relevant policy sectio
 The RAG_ENABLED env var gates whether ChromaDB is queried.
 """
 
+from langchain_core.runnables import RunnableConfig
+
 from app.agent.events import record_trace
 from app.agent.graph.state import AgentState
 from app.core.config import get_settings
 
 
-async def retrieval_node(state: AgentState) -> dict:
+async def retrieval_node(state: AgentState, config: RunnableConfig) -> dict:
     """
     Retrieves semantically relevant policy sections for the current query.
 
@@ -21,7 +23,7 @@ async def retrieval_node(state: AgentState) -> dict:
     IMPORTANT: Retrieved chunks are used ONLY for LLM response composition context.
     They do NOT influence the deterministic policy decision in policy_node.
     """
-    db = state["_db"]
+    db = config["configurable"]["db_session"]
     conversation_id = state["conversation_id"]
     settings = get_settings()
 

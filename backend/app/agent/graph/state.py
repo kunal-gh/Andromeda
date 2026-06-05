@@ -4,16 +4,17 @@ AgentState — The shared state object passed between all LangGraph nodes.
 TypedDict total=False allows partial updates from each node (each node only
 returns the keys it modifies, not the full state).
 
-Private fields prefixed with _ are runtime objects not serialized to API responses.
+Runtime objects (db session, trace handles) are passed via
+config["configurable"] to avoid LangGraph checkpoint serialization issues.
 """
 
-from typing import Any, Optional
+from typing import Any, Optional, TypedDict
 
 
-class AgentState(dict):
+class AgentState(TypedDict, total=False):
     """
     LangGraph state for the Andromeda agent.
-    Inherits from dict so LangGraph can merge partial updates.
+    Inherits from TypedDict so LangGraph can read its schema.
 
     Field groups:
       Input        — set at entry point by runner.py
@@ -24,7 +25,10 @@ class AgentState(dict):
       Policy       — policy_node output
       Response     — response_node output
       Routing      — flags used by edge routing functions
-      Private      — runtime objects not returned in API response
+
+    NOTE: db_session and lf_trace are NOT here — they travel via
+    config["configurable"] so LangGraph checkpointing never tries to
+    serialize a SQLAlchemy Session or other non-picklable object.
     """
 
     # ── Input ──────────────────────────────────────────────────────
@@ -69,46 +73,43 @@ class AgentState(dict):
     error: Optional[str]
     node_history: list[str]
 
-    # ── Private (runtime, not serialized) ─────────────────────────
-    # Access as state["_db"], state["_lf_trace"]
-    # _db: SQLAlchemy Session
-    # _lf_trace: Langfuse ConversationTrace (Phase 5)
-
 
 def initial_state(
     conversation_id: str,
     customer_email: Optional[str],
     raw_message: str,
-    db: Any,
+    db: Any,  # kept for runner.py backward compat, but no longer put in state
 ) -> AgentState:
-    """Build a clean initial AgentState for a new request."""
-    state = AgentState()
-    state["conversation_id"] = conversation_id
-    state["customer_email"] = customer_email
-    state["raw_message"] = raw_message
-    state["injection_detected"] = False
-    state["injection_risk"] = "LOW"
-    state["injection_patterns"] = []
-    state["extracted_order_id"] = None
-    state["extracted_reason"] = None
-    state["extracted_sentiment"] = None
-    state["extracted_intent_type"] = "unknown"
-    state["retrieved_policy_chunks"] = []
-    state["retrieval_scores"] = []
-    state["customer_data"] = None
-    state["order_data"] = None
-    state["policy_text"] = ""
-    state["missing_fields"] = []
-    state["decision"] = "NEEDS_INFO"
-    state["triggered_rules"] = []
-    state["confidence"] = 0.0
-    state["risk_flags"] = []
-    state["needs_escalation"] = False
-    state["explanation_facts"] = []
-    state["requires_human_review"] = False
-    state["assistant_message"] = ""
-    state["error"] = None
-    state["node_history"] = []
-    state["_db"] = db
-    state["_lf_trace"] = None
-    return state
+    """Build a clean initial AgentState for a new request.
+
+    db is accepted but NOT stored in state — it goes into
+    config["configurable"]["db_session"] in runner.py instead.
+    """
+    return AgentState(
+        conversation_id=conversation_id,
+        customer_email=customer_email,
+        raw_message=raw_message,
+        injection_detected=False,
+        injection_risk="LOW",
+        injection_patterns=[],
+        extracted_order_id=None,
+        extracted_reason=None,
+        extracted_sentiment=None,
+        extracted_intent_type="unknown",
+        retrieved_policy_chunks=[],
+        retrieval_scores=[],
+        customer_data=None,
+        order_data=None,
+        policy_text="",
+        missing_fields=[],
+        decision="NEEDS_INFO",
+        triggered_rules=[],
+        confidence=0.0,
+        risk_flags=[],
+        needs_escalation=False,
+        explanation_facts=[],
+        requires_human_review=False,
+        assistant_message="",
+        error=None,
+        node_history=[],
+    )

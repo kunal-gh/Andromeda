@@ -1,18 +1,20 @@
 """intake_node — Node 1: Initialize conversation context and emit first trace."""
 
+from langchain_core.runnables import RunnableConfig
+
 from app.agent.events import record_trace
 from app.agent.graph.state import AgentState
 from app.db.models import Conversation, Message
 
 
-async def intake_node(state: AgentState) -> dict:
+async def intake_node(state: AgentState, config: RunnableConfig) -> dict:
     """
     Responsibilities:
     - Create or fetch the Conversation row
     - Persist the incoming user message
     - Emit the first trace event for this request
     """
-    db = state["_db"]
+    db = config["configurable"]["db_session"]
     conversation_id = state["conversation_id"]
     customer_email = state.get("customer_email")
     raw_message = state["raw_message"]

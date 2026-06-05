@@ -40,7 +40,9 @@ async def run_refund_agent(db: Session, request: ChatRequest) -> ChatResponse:
     )
 
     graph = get_agent_graph()
-    config = {"configurable": {"thread_id": conversation_id}}
+    # Pass db_session via configurable — LangGraph never tries to serialize
+    # configurable values, so non-picklable objects (SQLAlchemy Session) are safe.
+    config = {"configurable": {"thread_id": conversation_id, "db_session": db}}
 
     # graph.ainvoke runs the full state machine and returns the final state
     final_state = await graph.ainvoke(state, config=config)

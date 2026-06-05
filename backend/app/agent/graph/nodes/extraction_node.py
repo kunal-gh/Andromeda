@@ -4,12 +4,14 @@ Identifies order_id, reason, and sentiment from raw customer message.
 Falls back to _heuristic_extract() if the LLM provider fails.
 """
 
+from langchain_core.runnables import RunnableConfig
+
 from app.agent.events import record_trace
 from app.agent.graph.state import AgentState
 from app.agent.providers import get_provider, _heuristic_extract
 
 
-async def extraction_node(state: AgentState) -> dict:
+async def extraction_node(state: AgentState, config: RunnableConfig) -> dict:
     """
     LLM Call 1 — intent extraction.
 
@@ -21,7 +23,7 @@ async def extraction_node(state: AgentState) -> dict:
 
     On provider failure falls back to regex heuristic (no LLM cost).
     """
-    db = state["_db"]
+    db = config["configurable"]["db_session"]
     conversation_id = state["conversation_id"]
     raw_message = state["raw_message"]
     customer_email = state.get("customer_email")
@@ -62,12 +64,12 @@ async def extraction_node(state: AgentState) -> dict:
     }
 
 
-async def needs_info_node(state: AgentState) -> dict:
+async def needs_info_node(state: AgentState, config: RunnableConfig) -> dict:
     """
     Terminal node when order_id is missing.
     Composes a clarification request — may use LLM or template.
     """
-    db = state["_db"]
+    db = config["configurable"]["db_session"]
     conversation_id = state["conversation_id"]
     customer_email = state.get("customer_email")
 

@@ -8,12 +8,14 @@ If Phase 3 RAG chunks are present, they are injected into the compose context
 so the LLM can cite specific policy sections in its reply.
 """
 
+from langchain_core.runnables import RunnableConfig
+
 from app.agent.events import record_trace
 from app.agent.graph.state import AgentState
 from app.agent.providers import get_provider, template_reply
 
 
-async def response_node(state: AgentState) -> dict:
+async def response_node(state: AgentState, config: RunnableConfig) -> dict:
     """
     Composes the customer-facing response using the locked policy decision.
 
@@ -22,7 +24,7 @@ async def response_node(state: AgentState) -> dict:
       - Customer and order data for personalisation
       - Retrieved policy chunks (empty in Phase 1, populated in Phase 3)
     """
-    db = state["_db"]
+    db = config["configurable"]["db_session"]
     conversation_id = state["conversation_id"]
 
     # ── Build compose context (decision is locked, LLM only writes prose) ──

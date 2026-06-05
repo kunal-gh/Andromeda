@@ -9,20 +9,22 @@ Persists the completed conversation state to the database:
 This is always the last node before END.
 """
 
+from langchain_core.runnables import RunnableConfig
+
 from app.agent.events import record_trace, serialize_trace_event
 from app.agent.graph.state import AgentState
 from app.db.models import Conversation, Message, RefundRequest, TraceEvent
 from sqlalchemy import select
 
 
-async def persistence_node(state: AgentState) -> dict:
+async def persistence_node(state: AgentState, config: RunnableConfig) -> dict:
     """
     Writes all final state to SQLite/Postgres.
 
     Called for every execution path: approved, denied, escalated,
     needs_info, blocked, and human_handoff paths all end here.
     """
-    db = state["_db"]
+    db = config["configurable"]["db_session"]
     conversation_id = state["conversation_id"]
     reply = state.get("assistant_message", "")
     decision = state.get("decision", "NEEDS_INFO")

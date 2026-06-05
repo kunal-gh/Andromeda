@@ -9,12 +9,14 @@ rule determines the outcome. If no denial or escalation rule fires, R9
 grants a standard approval.
 """
 
+from langchain_core.runnables import RunnableConfig
+
 from app.agent.events import record_trace
 from app.agent.graph.state import AgentState
 from app.agent.tools import create_escalation_case, evaluate_refund_policy
 
 
-async def policy_node(state: AgentState) -> dict:
+async def policy_node(state: AgentState, config: RunnableConfig) -> dict:
     """
     Runs the deterministic policy engine and locks the decision.
 
@@ -22,7 +24,7 @@ async def policy_node(state: AgentState) -> dict:
     should have been caught at tool_node and routed to needs_info.
     This node runs only when we have a confirmed order.
     """
-    db = state["_db"]
+    db = config["configurable"]["db_session"]
     conversation_id = state["conversation_id"]
     order_id = state.get("extracted_order_id")
     customer_email = state.get("customer_email")
@@ -97,14 +99,14 @@ async def policy_node(state: AgentState) -> dict:
     }
 
 
-async def human_handoff_node(state: AgentState) -> dict:
+async def human_handoff_node(state: AgentState, config: RunnableConfig) -> dict:
     """
     Reached when decision is ESCALATED and needs_escalation=True.
     Currently routes through response_node with full ESCALATED context.
     In Phase 6 (Human-in-the-Loop), this would pause the graph
     and await a human decision via the Supervisor pattern.
     """
-    db = state["_db"]
+    db = config["configurable"]["db_session"]
     conversation_id = state["conversation_id"]
 
     await record_trace(

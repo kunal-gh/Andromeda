@@ -5,17 +5,19 @@ and no LLM is ever invoked. The policy decision cannot be overridden through
 a blocked request.
 """
 
+from langchain_core.runnables import RunnableConfig
+
 from app.agent.events import record_trace
 from app.agent.graph.state import AgentState
 from app.agent.guardrails import scan_for_injection
 
 
-async def guardrail_node(state: AgentState) -> dict:
+async def guardrail_node(state: AgentState, config: RunnableConfig) -> dict:
     """
     Wraps the existing 35-pattern scan_for_injection() scanner.
     Returns injection metadata that edges.route_after_guardrail() reads.
     """
-    db = state["_db"]
+    db = config["configurable"]["db_session"]
     conversation_id = state["conversation_id"]
 
     injection = scan_for_injection(state["raw_message"])
@@ -41,12 +43,12 @@ async def guardrail_node(state: AgentState) -> dict:
     }
 
 
-async def block_node(state: AgentState) -> dict:
+async def block_node(state: AgentState, config: RunnableConfig) -> dict:
     """
     Terminal node for HIGH-risk injection attempts.
     Returns a hardcoded refusal message — no LLM involved.
     """
-    db = state["_db"]
+    db = config["configurable"]["db_session"]
     conversation_id = state["conversation_id"]
 
     await record_trace(

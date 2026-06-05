@@ -41,7 +41,7 @@ def build_agent_graph():
     each node to return only the keys it modifies. LangGraph merges
     partial updates into the running state automatically.
     """
-    builder = StateGraph(dict)  # dict state with AgentState shape
+    builder = StateGraph(AgentState)  # use AgentState schema
 
     # ── Register nodes ────────────────────────────────────────────
     builder.add_node("intake",        intake_node)
@@ -103,3 +103,9 @@ def get_agent_graph():
     if _compiled_graph is None:
         _compiled_graph = build_agent_graph()
     return _compiled_graph
+
+
+def reset_agent_graph():
+    """Force graph rebuild on next call to get_agent_graph(). Used in tests."""
+    global _compiled_graph
+    _compiled_graph = None

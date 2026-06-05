@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 
 
 INJECTION_PATTERNS = (
@@ -6,6 +6,7 @@ INJECTION_PATTERNS = (
     "ignore previous",
     "ignore all previous",
     "ignore instructions",
+    "ignore all instructions",
     "disregard all",
     "disregard previous",
     "forget everything",
@@ -19,6 +20,7 @@ INJECTION_PATTERNS = (
     "override policy",
     "bypass policy",
     "refund everything",
+    "approve every refund",
     "approve no matter what",
     # Identity / authority spoofing
     "you are now",
