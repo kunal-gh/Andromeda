@@ -10,7 +10,7 @@
 
 <br>
 
-<h1><a href="https://andromeda-eight-vert.vercel.app">🚨 ACCESS THE LIVE DEPLOYMENT HERE 🚨</a></h1>
+<h1><a href="https://andromeda-eight-vert.vercel.app"> ACCESS THE LIVE DEPLOYMENT HERE </a></h1>
 <p><i>Click the link above to interact with the live production Support Console.</i></p>
 
 </div>
