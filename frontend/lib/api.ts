@@ -38,7 +38,9 @@ export type Health = {
   business_today: string;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+// On Vercel, NEXT_PUBLIC_VERCEL_URL is populated automatically.
+const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : "";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? vercelUrl ?? "http://localhost:8000";
 
 export function eventUrl(conversationId: string) {
   return `${API_BASE_URL}/api/conversations/${conversationId}/events`;
