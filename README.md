@@ -6,7 +6,7 @@
 [![Observability](https://img.shields.io/badge/Observability-OpenTelemetry_%7C_LangFuse-FFA500?style=for-the-badge)](#-observability)
 [![State Machine](https://img.shields.io/badge/Orchestrator-LangGraph-00C4B6?style=for-the-badge)](#-system-architecture)
 
-**Architected by Kunal | Andromeda Enterprise AI Operations**
+**Andromeda Core | Reference Architecture & Implementation**
 
 ---
 
@@ -845,11 +845,11 @@ andromeda/
 
 ---
 
-## Resume Skills Demonstrated
+## Architectural Patterns & Technology Mapping
 
-The table below maps components of the Andromeda platform to core skills sought after in Senior AI Engineering and Agentic AI roles.
+The table below details how various system components map to standard enterprise engineering patterns, protocols, and architectural paradigms implemented within the Andromeda codebase.
 
-| Project Component | Technical Skill | Core Keywords |
+| System Component | Architectural Pattern | Technologies & Protocols |
 | :--- | :--- | :--- |
 | **LangGraph Core** | Multi-Agent Orchestration | State Machine, Cyclic Graphs, MemorySaver, Supervisor Routing |
 | **mcp_servers/** | Model Context Protocol (MCP) | FastMCP, Tool Decoupling, stdio streams, Remote Tool Invocation |
