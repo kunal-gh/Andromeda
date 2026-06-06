@@ -1,0 +1,51 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Install dependencies
+        run: |
+          cd backend && pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          cd backend && python -m pytest -v --cov=app --cov-report=xml
+      - name: Run evaluation suite
+        run: |
+          cd backend && python -m pytest tests/test_eval/ -v
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with: { aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}, aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}, aws-region: us-east-1 }
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push backend
+        run: |
+          cd backend
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/worknoon-backend:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/worknoon-backend:${{ github.sha }}
+      - name: Build and push frontend
+        run: |
+          cd frontend
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/worknoon-frontend:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/worknoon-frontend:${{ github.sha }}
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service --cluster worknoon-cluster --service worknoon-backend --force-new-deployment
+          aws ecs update-service --cluster worknoon-cluster --service worknoon-frontend --force-new-deployment

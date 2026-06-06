@@ -828,3 +828,178 @@ While Andromeda currently operates flawlessly in a containerized environment, th
 ### Phase 6: Cloud-Native Container Deployment
 *   **Goal**: Support high availability.
 *   **Plan**: Deploy the backend container to **AWS EKS** (Kubernetes) or **GCP Cloud Run**, backed by a PostgreSQL database and Redis session state manager.
+
+
+# Worknoon Enterprise AI Operations Platform
+## Master Technical Architecture & System Specification
+**Version:** 2.0.0 (Agentic Enterprise Edition)  
+**Date:** June 2026  
+**Document Code:** SPEC-WRK-2026-V2  
+**Classification:** Enterprise Engineering Reference Document  
+
+---
+
+## Table of Contents
+1. [Executive Summary & Architectural Paradigm Shift](#1-executive-summary--architectural-paradigm-shift)
+2. [Macro System Topology](#2-macro-system-topology)
+3. [Multi-Agent Orchestration (LangGraph)](#3-multi-agent-orchestration-langgraph)
+4. [Data Decoupling via Model Context Protocol (MCP)](#4-data-decoupling-via-model-context-protocol-mcp)
+5. [The Deterministic Policy Engine](#5-the-deterministic-policy-engine)
+6. [Hybrid RAG & Knowledge Graph (Qdrant + NetworkX)](#6-hybrid-rag--knowledge-graph-qdrant--networkx)
+7. [Automated Evaluation Framework (DeepEval & RAGAS)](#7-automated-evaluation-framework-deepeval--ragas)
+8. [Real-Time Observability & Telemetry (LangFuse + OTel)](#8-real-time-observability--telemetry-langfuse--otel)
+9. [Human-in-the-Loop & Adversarial Resilience](#9-human-in-the-loop--adversarial-resilience)
+10. [Cloud-Native Deployment (AWS, Terraform, CI/CD)](#10-cloud-native-deployment-aws-terraform-cicd)
+11. [Frontend Evolution & Multi-Agent Dashboard](#11-frontend-evolution--multi-agent-dashboard)
+
+---
+
+## 1. Executive Summary & Architectural Paradigm Shift
+
+The Worknoon platform represents the absolute state-of-the-art in 2026 AI Engineering. Transitioning from a linear, deterministic "refund bot" to a full **Agent Platform**, the system leverages cutting-edge patterns to deliver secure, highly observable, and deeply integrated enterprise AI operations.
+
+### 1.1 The Agentic Paradigm
+Traditional LLM wrappers suffer from hallucinatory policy drift, jailbreaking vulnerabilities, and unbounded tool-loop latency. Worknoon entirely mitigates these risks by implementing a **Multi-Agent LangGraph State Machine**. The LLM operates as a specialized routing node (Supervisor) and empathetic responder, while critical business logic is locked within a purely deterministic Python Policy Engine. 
+
+### 1.2 Enterprise Standards Achieved
+- **Data Security**: Achieved via FastMCP, physically isolating the LLM execution environment from backend SQLite/PostgreSQL databases using standard I/O streams.
+- **Accuracy Verification**: Automated CI/CD gates running DeepEval and RAGAS evaluate the system for Faithfulness and Answer Relevancy on every commit.
+- **Deep Observability**: Traces distributed across FastAPI and SQLAlchemy via OpenTelemetry, with precise token and cost tracking via LangFuse.
+
+---
+
+## 2. Macro System Topology
+
+The Worknoon architecture is structured as a cloud-native, microservices-oriented monorepo.
+
+| Layer | Component | Principal Technologies | Role |
+| :--- | :--- | :--- | :--- |
+| **Presentation** | Agent Dashboard | Next.js, React, Framer Motion, Recharts | Renders the customer chat view, Agent Flow visualizer, and Metrics dashboard. |
+| **Orchestration** | Multi-Agent Router | LangGraph, LangChain, FastAPI | Manages the cyclical state machine, routing intents to specialized worker nodes. |
+| **Retrieval** | Hybrid RAG | Qdrant, NetworkX, OpenAI Embeddings | Combines dense vector search for policy docs with graph traversals for customer-order relationships. |
+| **Tools** | MCP Servers | FastMCP, Python | Exposes backend API tools over stdio to prevent direct LLM-to-DB coupling. |
+| **Data** | Persistent Store | PostgreSQL (AWS RDS) | Persists customer profiles, orders, and human-in-the-loop escalation queues. |
+| **Observability**| Telemetry Collector | OpenTelemetry, LangFuse, Prometheus | Aggregates logs, traces, and metrics across the entire stack. |
+
+---
+
+## 3. Multi-Agent Orchestration (LangGraph)
+
+The core decision loop in Worknoon is managed by **LangGraph**, replacing fragile linear scripts with a robust, persistent state machine.
+
+### 3.1 The Supervisor Pattern
+A central `Supervisor` agent evaluates the user's intent and dynamically routes the request to one of three specialized worker nodes:
+1. **Policy Agent**: Handles refund requests. Extracts Order IDs, passes them to the deterministic engine, and locks the decision.
+2. **Retrieval Agent**: Handles general inquiries (e.g., "What is your return policy?") by triggering the Hybrid RAG pipeline.
+3. **Support Agent**: Handles general conversation, missing information requests, and formats the final empathetic response based on locked backend constraints.
+
+### 3.2 State Persistence
+Using LangGraph's `MemorySaver` checkpointer, conversations are persistent across turns. The `AgentState` schema tracks `messages`, `sender`, `locked_decision`, and `extracted_order_id`.
+
+---
+
+## 4. Data Decoupling via Model Context Protocol (MCP)
+
+To prevent the LLM from executing raw SQL or accessing sensitive credentials directly, Worknoon implements the **Model Context Protocol (MCP)**.
+
+### 4.1 FastMCP Architecture
+Three independent MCP servers are defined in the `mcp/` directory:
+- `Worknoon-CRM`: Exposes customer profile lookups.
+- `Worknoon-Orders`: Exposes order history lookups.
+- `Worknoon-Policy`: Exposes the refund policy engine.
+
+The LangGraph orchestration node connects to these servers via `AsyncExitStack` and `stdio` streams. The LLM only knows the *schemas* of the tools, not their implementations. When the LLM calls a tool, the request is serialized over the MCP protocol, executed securely by the isolated server, and the result is returned.
+
+---
+
+## 5. The Deterministic Policy Engine
+
+The heart of the refund system is a zero-hallucination Python rule engine. The LLM is **never** allowed to make financial decisions. 
+
+### 5.1 Strict Rule Boundaries
+1. **R6 Identity Match**: Email must match the order.
+2. **R7 Delivery Status**: Must be "delivered".
+3. **R2 Final Sale**: Cannot be a final sale item.
+4. **R1 30-Day Window**: `(today - delivery_date).days <= 30`.
+5. **R4 Value Cap**: Escalates to human review if price > $500.
+6. **R10 Fraud Risk**: Escalates if Customer Risk is "HIGH".
+
+Once the rule engine evaluates an order, the result (`APPROVED`, `DENIED`, `ESCALATED`) is permanently locked in the database. The LLM is only permitted to read this status to draft the reply.
+
+---
+
+## 6. Hybrid RAG & Knowledge Graph (Qdrant + NetworkX)
+
+For complex queries, Worknoon employs a state-of-the-art Hybrid RAG system.
+
+### 6.1 Vector Search (Qdrant)
+Policy documents are embedded and stored in Qdrant. When a user asks "How do I return a digital gift card?", the Retrieval Agent queries the vector store to extract the specific policy chunks relevant to digital goods.
+
+### 6.2 Knowledge Graph (NetworkX)
+Relational data (Customers -> Orders -> Items) is seeded into an in-memory NetworkX graph. This allows the system to traverse multi-hop queries, such as "Find all delayed orders for customers with Gold status", which vector stores struggle with. The `hybrid_query.py` module combines results from both Qdrant and NetworkX for the LLM.
+
+---
+
+## 7. Automated Evaluation Framework (DeepEval & RAGAS)
+
+Quality assurance is guaranteed through automated, LLM-as-a-Judge evaluations integrated directly into the CI/CD pipeline.
+
+### 7.1 DeepEval Assertions
+- **Faithfulness**: Ensures the generated response aligns perfectly with the retrieved policy chunks.
+- **Answer Relevancy**: Ensures the response directly addresses the user's query without unnecessary verbosity.
+
+### 7.2 RAGAS Metrics
+Used to evaluate the Hybrid RAG pipeline's Context Precision and Context Recall, ensuring the Qdrant database is retrieving the optimal chunks before generation occurs.
+
+---
+
+## 8. Real-Time Observability & Telemetry (LangFuse + OTel)
+
+Enterprise systems require granular insight into token usage, costs, and latency. 
+
+### 8.1 LangFuse Integration
+The `@observe` decorator tracks every LLM generation span, recording prompt tokens, completion tokens, latency, and exact model usage natively to the LangFuse dashboard.
+
+### 8.2 OpenTelemetry
+Distributed tracing is achieved using the `opentelemetry-instrumentation` suite. Requests entering the FastAPI backend are traced completely through the SQLAlchemy database transactions. An `otel-collector` service routes these traces to Prometheus and Jaeger.
+
+---
+
+## 9. Human-in-the-Loop & Adversarial Resilience
+
+High-stakes AI must handle edge cases securely and allow for human intervention.
+
+### 9.1 Escalation Queue
+If the policy engine returns an `ESCALATED` status (e.g., high fraud risk, high order value), the ticket is routed to the Human Review Service backed by PostgreSQL. An operator can asynchronously review the request in the dashboard.
+
+### 9.2 Red Teaming Framework
+The `red_team.py` suite actively bombards the agent with prompt injection attacks (Authority Spoofing, Context Flooding, Unicode Smuggling) during the test phase to ensure the Guardrails never fail.
+
+---
+
+## 10. Cloud-Native Deployment (AWS, Terraform, CI/CD)
+
+The infrastructure is defined entirely as code.
+
+### 10.1 Terraform IaC
+- **AWS ECS Fargate**: Serverless container orchestration for the FastAPI backend.
+- **AWS RDS PostgreSQL**: Managed relational database for state persistence.
+- **Application Load Balancer**: Routes traffic to the ECS tasks.
+
+### 10.2 GitHub Actions
+The `.github/workflows/deploy.yml` pipeline runs the `pytest` evaluation suites (DeepEval/RAGAS) on every commit. If Faithfulness drops below 90%, the build fails. Upon success, containers are pushed to ECR and deployed to ECS.
+
+---
+
+## 11. Frontend Evolution & Multi-Agent Dashboard
+
+The user interface evolved from a simple chat window to an administrative operations center.
+
+### 11.1 Agent Flow Visualizer
+Built with Framer Motion, this component provides real-time visualization of the LangGraph execution. As the Supervisor routes to the Policy Agent, the UI animates the active node, providing immediate feedback to operators.
+
+### 11.2 Metrics Dashboard
+Utilizing Recharts, the dashboard streams live data from the Prometheus metrics endpoint to display Requests per Minute, Token Usage, and Decision Distributions, giving management full operational oversight.
+
+---
+**End of Document**

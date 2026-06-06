@@ -16,7 +16,9 @@ from sqlalchemy.orm import Session
 
 from app.agent.events import serialize_trace_event
 from app.agent.graph.builder import get_agent_graph
+from app.agent.multi.orchestrator import get_multi_agent_graph
 from app.agent.graph.state import initial_state
+from app.core.config import get_settings
 from app.db.models import RefundRequest, TraceEvent
 from app.models.schemas import ChatRequest, ChatResponse, TraceEventOut
 
@@ -38,7 +40,12 @@ async def run_refund_agent(db: Session, request: ChatRequest) -> ChatResponse:
         db=db,
     )
 
-    graph = get_agent_graph()
+    settings = get_settings()
+    if settings.agent_architecture == "multi":
+        graph = get_multi_agent_graph()
+    else:
+        graph = get_agent_graph()
+
     # Pass db_session via configurable — LangGraph never tries to serialize
     # configurable values, so non-picklable objects (SQLAlchemy Session) are safe.
     config = {"configurable": {"thread_id": conversation_id, "db_session": db}}

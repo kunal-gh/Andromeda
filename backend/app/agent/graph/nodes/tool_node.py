@@ -15,6 +15,13 @@ from app.agent.tools import (
     lookup_order,
     read_refund_policy,
 )
+from app.core.config import get_settings
+from app.agent.mcp.client import (
+    mcp_list_customer_orders,
+    mcp_lookup_customer,
+    mcp_lookup_order,
+    mcp_read_refund_policy,
+)
 
 
 async def tool_node(state: AgentState, config: RunnableConfig) -> dict:
@@ -29,30 +36,45 @@ async def tool_node(state: AgentState, config: RunnableConfig) -> dict:
     customer_email = state.get("customer_email")
     order_id = state.get("extracted_order_id")
 
+    settings = get_settings()
+    use_mcp = settings.tool_mode == "mcp"
+
     # ── Policy document ───────────────────────────────────────────
-    policy_text = read_refund_policy()
+    if use_mcp:
+        policy_text = await mcp_read_refund_policy()
+    else:
+        policy_text = read_refund_policy()
+        
     await record_trace(
         db, conversation_id,
         "tool.read_refund_policy",
-        "ArcaShop refund policy loaded",
+        "ArcaShop refund policy loaded via MCP" if use_mcp else "ArcaShop refund policy loaded",
         {"characters": len(policy_text)},
     )
 
     # ── Customer lookup ───────────────────────────────────────────
-    customer = lookup_customer_by_email(db, customer_email)
+    if use_mcp:
+        customer = await mcp_lookup_customer(customer_email)
+    else:
+        customer = lookup_customer_by_email(db, customer_email)
+        
     await record_trace(
         db, conversation_id,
         "tool.lookup_customer_by_email",
-        "Customer profile lookup completed",
+        "Customer profile lookup completed via MCP" if use_mcp else "Customer profile lookup completed",
         {"email": customer_email, "found": bool(customer)},
     )
 
     # ── Order lookup ──────────────────────────────────────────────
-    order = lookup_order(db, order_id)
+    if use_mcp:
+        order = await mcp_lookup_order(order_id)
+    else:
+        order = lookup_order(db, order_id)
+        
     await record_trace(
         db, conversation_id,
         "tool.lookup_order",
-        "Order details lookup completed",
+        "Order details lookup completed via MCP" if use_mcp else "Order details lookup completed",
         {"order_id": order_id, "found": bool(order)},
     )
 
@@ -64,11 +86,15 @@ async def tool_node(state: AgentState, config: RunnableConfig) -> dict:
         missing_fields.append("customer_email")
 
     if customer_email and not order_id:
-        orders = list_customer_orders(db, customer_email)
+        if use_mcp:
+            orders = await mcp_list_customer_orders(customer_email)
+        else:
+            orders = list_customer_orders(db, customer_email)
+            
         await record_trace(
             db, conversation_id,
             "tool.list_customer_orders",
-            "Customer order history listed",
+            "Customer order history listed via MCP" if use_mcp else "Customer order history listed",
             {"count": len(orders)},
         )
 

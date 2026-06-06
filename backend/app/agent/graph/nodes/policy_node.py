@@ -14,6 +14,8 @@ from langchain_core.runnables import RunnableConfig
 from app.agent.events import record_trace
 from app.agent.graph.state import AgentState
 from app.agent.tools import create_escalation_case, evaluate_refund_policy
+from app.core.config import get_settings
+from app.agent.mcp.client import mcp_evaluate_policy
 
 
 async def policy_node(state: AgentState, config: RunnableConfig) -> dict:
@@ -51,7 +53,11 @@ async def policy_node(state: AgentState, config: RunnableConfig) -> dict:
         }
 
     # ── Deterministic policy evaluation ──────────────────────────
-    evaluation = evaluate_refund_policy(db, order_id, customer_email)
+    settings = get_settings()
+    if settings.tool_mode == "mcp":
+        evaluation = await mcp_evaluate_policy(order_id, customer_email)
+    else:
+        evaluation = evaluate_refund_policy(db, order_id, customer_email)
 
     await record_trace(
         db, conversation_id,
