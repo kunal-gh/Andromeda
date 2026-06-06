@@ -1,8 +1,6 @@
 """Supervisor Agent — Routes incoming requests to specialized worker agents."""
 from typing import Literal
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
 
 class RoutingDecision(BaseModel):
     target_agent: Literal["policy", "retrieval", "support", "escalation"] = Field(description="Which agent should handle this request")
@@ -27,6 +25,30 @@ Conversation history: {history}
 """
 
 async def supervise(message: str, history: list[dict], customer_email: str | None = None) -> RoutingDecision:
+    from app.core.config import get_settings
+    settings = get_settings()
+    
+    if settings.llm_provider.lower() == "mock":
+        lower_msg = message.lower()
+        if "refund" in lower_msg or "return" in lower_msg or "ord-" in lower_msg:
+            target = "policy"
+        elif "faq" in lower_msg or "how to" in lower_msg or "?" in lower_msg:
+            target = "retrieval"
+        elif "human" in lower_msg or "agent" in lower_msg or "representative" in lower_msg:
+            target = "escalation"
+        else:
+            target = "support"
+            
+        return RoutingDecision(
+            target_agent=target,
+            confidence=1.0,
+            reasoning="Routed via offline rule-based supervisor logic.",
+            extracted_entities={}
+        )
+
+    from langchain_openai import ChatOpenAI
+    from langchain_core.messages import SystemMessage, HumanMessage
+
     # Use gpt-4o-mini as the cheap/fast router
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(RoutingDecision)
     
@@ -38,3 +60,4 @@ async def supervise(message: str, history: list[dict], customer_email: str | Non
         HumanMessage(content=f"Route this request from {customer_email or 'unknown'}"),
     ])
     return result
+

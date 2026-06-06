@@ -23,6 +23,13 @@ Usage:
 
 from __future__ import annotations
 
+import sys
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except AttributeError:
+    pass
+
 import argparse
 import asyncio
 import json
