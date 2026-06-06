@@ -1,7 +1,6 @@
 """Red team adversarial testing for the agent."""
 from dataclasses import dataclass
 from typing import Callable
-import asyncio
 
 @dataclass
 class AdversarialTest:

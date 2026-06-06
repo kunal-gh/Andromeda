@@ -29,11 +29,13 @@ class WorknoonKnowledgeGraph:
             logger.warning("networkx not installed. Knowledge Graph disabled.")
     
     def add_entity(self, entity: Entity):
-        if not self._available: return
+        if not self._available:
+            return
         self.graph.add_node(entity.id, type=entity.type, **entity.properties)
     
     def add_relationship(self, rel: Relationship):
-        if not self._available: return
+        if not self._available:
+            return
         self.graph.add_edge(rel.source, rel.target, type=rel.type, **rel.properties)
     
     def get_related_entities(self, entity_id: str, relationship_type: str | None = None) -> list[dict]:
@@ -53,7 +55,8 @@ class WorknoonKnowledgeGraph:
         return related
     
     def find_paths(self, source: str, target: str, max_length: int = 3) -> list[list[str]]:
-        if not self._available: return []
+        if not self._available:
+            return []
         import networkx as nx
         try:
             return list(nx.all_simple_paths(self.graph, source, target, cutoff=max_length))
@@ -61,7 +64,8 @@ class WorknoonKnowledgeGraph:
             return []
     
     def query_subgraph(self, entity_type: str | None = None, **property_filters) -> list[dict]:
-        if not self._available: return []
+        if not self._available:
+            return []
         results = []
         for node_id, data in self.graph.nodes(data=True):
             if entity_type and data.get("type") != entity_type:
@@ -80,7 +84,8 @@ def get_knowledge_graph() -> WorknoonKnowledgeGraph:
     return _knowledge_graph
 
 def _seed_knowledge_graph(kg: WorknoonKnowledgeGraph):
-    if not kg._available: return
+    if not kg._available:
+        return
     try:
         from app.db.database import SessionLocal
         from app.db.models import Customer, Order

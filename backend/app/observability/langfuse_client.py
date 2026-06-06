@@ -1,5 +1,4 @@
 """LangFuse integration for LLM tracing and monitoring."""
-import os
 import logging
 from functools import wraps
 

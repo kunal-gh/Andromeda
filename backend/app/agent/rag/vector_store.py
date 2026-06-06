@@ -14,7 +14,6 @@ def get_qdrant_client():
     if _qdrant_client is None:
         try:
             from qdrant_client import QdrantClient
-            settings = get_settings()
             _qdrant_client = QdrantClient(host="localhost", port=6333) # Hardcoded for now
         except ImportError:
             logger.warning("qdrant-client not installed.")
@@ -33,7 +32,8 @@ def get_embeddings():
 
 def init_qdrant_collection():
     client = get_qdrant_client()
-    if not client: return
+    if not client:
+        return
     
     from qdrant_client.models import Distance, VectorParams
     collections = client.get_collections().collections

@@ -1,8 +1,6 @@
 """Versioned prompt registry for LLMOps."""
 from dataclasses import dataclass
 from typing import Any
-import hashlib
-import json
 
 @dataclass
 class PromptVersion:

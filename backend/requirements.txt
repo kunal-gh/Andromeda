@@ -23,6 +23,7 @@ openai>=1.54,<2.0
 # ── Phase 1: LangGraph ────────────────────────────────────────────
 langgraph>=0.2.28
 langchain-core>=0.3.0
+langchain-openai>=0.1.0
 
 # ── Phase 2: MCP ─────────────────────────────────────────────────
 fastmcp>=0.4.0
