@@ -1,6 +1,5 @@
 """Qdrant vector store setup and document ingestion."""
 import logging
-from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 

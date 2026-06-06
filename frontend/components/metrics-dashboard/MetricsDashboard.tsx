@@ -1,5 +1,5 @@
 "use client";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
 interface MetricsData {
@@ -10,10 +10,11 @@ interface MetricsData {
 }
 
 export function MetricsDashboard() {
-  const { data } = useQuery<MetricsData>("metrics", () => 
-    fetch("/api/metrics").then(r => r.json()),
-    { refetchInterval: 30000 }
-  );
+  const { data } = useQuery<MetricsData>({
+    queryKey: ["metrics"],
+    queryFn: () => fetch("/api/metrics").then(r => r.json()),
+    refetchInterval: 30000
+  });
 
   return (
     <div className="grid grid-cols-2 gap-4 p-4">
