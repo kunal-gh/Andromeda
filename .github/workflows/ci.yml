@@ -127,17 +127,17 @@ jobs:
           BUSINESS_TODAY: "2025-01-15"
           PYTHONPATH: backend
         run: |
-          python evaluation/run_eval.py \
-            --dataset evaluation/datasets/golden_v1.json \
+          python backend/eval/run_eval.py \
+            --dataset backend/eval/datasets/golden_v1.json \
             --smoke \
-            --output evaluation/reports/smoke_report.json
+            --output backend/eval/reports/smoke_report.json
 
       - name: Upload eval report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: eval-smoke-report
-          path: evaluation/reports/smoke_report.json
+          name: evaluation-report
+          path: backend/eval/reports/smoke_report.json
 
   # ── Job 5: Docker Build Check ───────────────────────────────────────────
   docker-build:

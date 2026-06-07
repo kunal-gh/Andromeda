@@ -17,8 +17,8 @@ Thresholds (from master plan):
   context_precision ≥ 0.70
 
 Usage:
-  python -m evaluation.run_eval --dataset evaluation/datasets/golden_v1.json
-  python -m evaluation.run_eval --smoke  # fast 3-sample smoke test
+  python -m backend.eval.run_eval --dataset backend/eval/datasets/golden_v1.json
+  python -m backend.eval.run_eval --smoke  # fast 3-sample smoke test
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ def load_dataset(path: str) -> list[dict]:
 async def _run_case(case: dict) -> dict:
     """Run one golden dataset case through the live agent."""
     import sys
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
     from app.db.database import SessionLocal
     from app.db.seed import init_db, seed_if_empty
@@ -185,7 +185,7 @@ async def run_evaluation(dataset_path: str, smoke: bool = False) -> dict[str, An
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Andromeda evaluation runner")
-    parser.add_argument("--dataset", default="evaluation/datasets/golden_v1.json")
+    parser.add_argument("--dataset", default="backend/eval/datasets/golden_v1.json")
     parser.add_argument("--smoke", action="store_true", help="Run 3-sample smoke test")
     parser.add_argument("--output", help="Write JSON report to file")
     args = parser.parse_args()

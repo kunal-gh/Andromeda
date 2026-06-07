@@ -973,12 +973,12 @@ The table below details how various system components map to standard enterprise
 | System Component | Architectural Pattern | Technologies & Protocols |
 | :--- | :--- | :--- |
 | **LangGraph Core** | Multi-Agent Orchestration | State Machine, Cyclic Graphs, MemorySaver, Supervisor Routing |
-| **mcp_servers/** | Model Context Protocol (MCP) | FastMCP, Tool Decoupling, stdio streams, Remote Tool Invocation |
-| **hybrid_query.py** | Hybrid GraphRAG | Vector Indexing (Qdrant), Relation Mapping (NetworkX/Neo4j) |
-| **evaluation/run_eval.py** | LLM Evaluation & Guardrails | DeepEval, RAGAS, Faithfulness, Relevancy, Prompt Injection Scan |
-| **observability/** | Observability & Telemetry | OpenTelemetry, Prometheus, Grafana, LangFuse Node Tracing |
-| **human_review.py** | Human-in-the-Loop | Escalation Queues, Audit Logging, Manual Authorization |
-| **test_policy.py** | Software Quality Assurance | Pytest, Edge-case Testing, Assertions, CI/CD Integration |
+| **backend/mcp_servers/** | Model Context Protocol (MCP) | FastMCP, Tool Decoupling, stdio streams, Remote Tool Invocation |
+| **backend/rag/hybrid_query.py** | Hybrid GraphRAG | Vector Indexing (Qdrant), Relation Mapping (NetworkX/Neo4j) |
+| **backend/eval/run_eval.py** | LLM Evaluation & Guardrails | DeepEval, RAGAS, Faithfulness, Relevancy, Prompt Injection Scan |
+| **backend/observability/** | Observability & Telemetry | OpenTelemetry, Prometheus, Grafana, LangFuse Node Tracing |
+| **backend/safety/human_review.py** | Human-in-the-Loop | Escalation Queues, Audit Logging, Manual Authorization |
+| **backend/tests/test_policy.py** | Software Quality Assurance | Pytest, Edge-case Testing, Assertions, CI/CD Integration |
 | **docker-compose.yml** | Infrastructure & DevOps | Multi-container setups, Docker, GitHub Actions, AWS ECS Fargate |
 
 ---
