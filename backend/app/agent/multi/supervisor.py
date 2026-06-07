@@ -8,7 +8,7 @@ class RoutingDecision(BaseModel):
     reasoning: str = Field(description="Why this routing decision was made")
     extracted_entities: dict = Field(default_factory=dict, description="Key entities found")
 
-SUPERVISOR_PROMPT = """You are the Supervisor Agent for Worknoon Customer Support.
+SUPERVISOR_PROMPT = """You are the Supervisor Agent for Andromeda Customer Support.
 Your job is to analyze the customer's message and route it to the correct specialized agent.
 
 Available agents:

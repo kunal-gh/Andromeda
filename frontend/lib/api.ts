@@ -40,7 +40,7 @@ export type Health = {
 
 // On Vercel, NEXT_PUBLIC_VERCEL_URL is populated automatically.
 const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : "";
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? vercelUrl ?? "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || vercelUrl || "http://localhost:8000";
 
 export function eventUrl(conversationId: string) {
   return `${API_BASE_URL}/api/conversations/${conversationId}/events`;
@@ -62,18 +62,26 @@ export async function postChat(input: { conversation_id: string; message: string
 }
 
 export async function getConversations() {
-  const response = await fetch(`${API_BASE_URL}/api/conversations`, { cache: "no-store" });
-  if (!response.ok) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/conversations`, { cache: "no-store" });
+    if (!response.ok) {
+      return [] as ConversationSummary[];
+    }
+    return (await response.json()) as ConversationSummary[];
+  } catch (err) {
     return [] as ConversationSummary[];
   }
-  return (await response.json()) as ConversationSummary[];
 }
 
 export async function getHealth() {
-  const response = await fetch(`${API_BASE_URL}/api/health`, { cache: "no-store" });
-  if (!response.ok) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/health`, { cache: "no-store" });
+    if (!response.ok) {
+      return null;
+    }
+    return (await response.json()) as Health;
+  } catch (err) {
     return null;
   }
-  return (await response.json()) as Health;
 }
 

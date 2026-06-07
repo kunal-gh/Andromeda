@@ -610,3 +610,73 @@ Where:
 The total request latency is modeled as:
 
 $$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{guardrail}} + \mathcal{L}_{\text{intent}} + \mathcal{L}_{\text{supervisor}} + \mathcal{L}_{\text{retrieval}} + \mathcal{L}_{\text{mcp}} + \mathcal{L}_{\text{policy}} + \mathcal{L}_{\text{composition}} + \mathcal{L}_{\text{observability}}$$
+
+---
+
+## 18. Comprehensive API Reference
+
+The Andromeda FastAPI gateway exposes several critical endpoints for frontend integration.
+
+### 18.1 `POST /api/chat`
+Submit a user message to the LangGraph orchestrator.
+**Request Payload:**
+```json
+{
+  "message": "I want a refund for ORD-1002.",
+  "customer_email": "asha.rao@example.com"
+}
+```
+**Response:**
+Returns a `conversation_id` which is used to subscribe to the SSE stream.
+
+### 18.2 `GET /api/conversations/{id}/events`
+Server-Sent Events (SSE) endpoint to receive real-time LangGraph state transitions.
+**Events Yielded:**
+- `event: update` - Contains node execution metrics and partial tool outputs.
+- `event: end` - Signals the state machine has halted.
+
+---
+
+## 19. Configuration & Environment Variables
+
+Create a `.env` file in the `backend/` directory.
+
+| Variable | Description | Default / Example |
+| :--- | :--- | :--- |
+| `LLM_PROVIDER` | Selects the language model adapter (`openai`, `gemini`, `groq`, `mock`). | `openai` |
+| `OPENAI_API_KEY` | Required if using the OpenAI provider. | `sk-...` |
+| `DATABASE_URL` | SQLAlchemy connection string. | `sqlite:///./andromeda.db` |
+| `PYTHONPATH` | Ensure local packages resolve correctly. | `.` |
+
+---
+
+## 20. Extending the Policy Engine
+
+The deterministic policy engine in `policy.py` is designed for extensibility. To add a new rule, follow these steps.
+
+### Step 1: Define the Rule Function
+In `backend/app/agent/policy.py`, add a new pure function returning a boolean.
+```python
+def rule_r11_vip_exemption(order: dict, customer: dict) -> bool:
+    """If customer is Gold tier, bypass 30-day window limits."""
+    return customer.get("loyalty_tier") == "Gold"
+```
+
+### Step 2: Inject into the Evaluator Pipeline
+Modify `evaluate_refund()` to check your new rule before hard denials.
+```python
+if rule_r11_vip_exemption(order, customer):
+    return "APPROVED", ["R11_VIP_EXEMPTION"]
+```
+
+---
+
+## 21. Advanced Debugging
+
+Andromeda uses OpenTelemetry.
+
+### 21.1 Tracing LangGraph
+To view local node transitions:
+1. Boot the Phoenix or LangFuse docker container.
+2. Ensure `OTEL_EXPORTER_OTLP_ENDPOINT` is set in your `.env`.
+3. Submit a query. Node transitions, including FastMCP tool execution latencies, will be graphed as a waterfall trace in your browser dashboard.

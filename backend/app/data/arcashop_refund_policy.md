@@ -1,4 +1,4 @@
-﻿# Worknoon Demo Commerce Refund Policy
+# Worknoon Demo Commerce Refund Policy
 
 This policy is the source of truth for the AI Customer Support Refund Agent. The assistant may explain these rules, but it may not override them.
 

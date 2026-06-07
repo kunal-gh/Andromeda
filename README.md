@@ -50,6 +50,46 @@ Andromeda mitigates these risks by isolating the LLM into two non-mutating roles
 
 ---
 
+## Quick Start Guide
+
+> [!TIP]
+> Get Andromeda running locally in under 2 minutes using standard package managers.
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/kunal-gh/Andromeda.git
+cd Andromeda
+```
+
+### 2. Setup the Backend
+Andromeda uses `poetry` or standard `venv` for Python dependency management.
+```bash
+cd backend
+# Create environment and install dependencies
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# Copy environment variables
+cp .env.example .env
+
+# Boot the FastAPI and MCP servers
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+### 3. Setup the Frontend
+The Next.js app router provides the support console interface.
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 4. Access the Platform
+Navigate to [http://localhost:3000](http://localhost:3000) to view the Support Console. The system is pre-seeded with synthetic CRM data for immediate testing.
+
+---
+
 ## Problem Statement
 
 Conventional ReAct (Reasoning and Acting) agents use linear loops (`while True: think -> act -> observe`) that execute dynamically. In enterprise environments, this introduces significant risks:
@@ -381,9 +421,9 @@ Andromeda uses the **Model Context Protocol (MCP)** to isolate the LLM reasoning
 
 ### MCP Servers and Boundaries
 
-* **`Worknoon-CRM`**: Exposes query interfaces like `lookup_customer_by_email` and `get_customer_spend_metrics`.
-* **`Worknoon-Orders`**: Exposes functions like `lookup_order` and `verify_delivery_date`.
-* **`Worknoon-Policy`**: Exposes the policy engine execution function `evaluate_refund_policy`.
+* **`Andromeda-CRM`**: Exposes query interfaces like `lookup_customer_by_email` and `get_customer_spend_metrics`.
+* **`Andromeda-Orders`**: Exposes functions like `lookup_order` and `verify_delivery_date`.
+* **`Andromeda-Policy`**: Exposes the policy engine execution function `evaluate_refund_policy`.
 
 ### Why MCP is Future-Proof
 1. **Decoupled API Lifecycles**: MCP servers can be rewritten in any language (Python, TypeScript, Go) without modifying the central LangGraph state machine.
@@ -787,6 +827,37 @@ Our architectural decisions balance simplicity, developer velocity, and operatio
 * *PostgreSQL*: Production-grade database supporting concurrent write transactions and ACID locking.
 * *SQLite*: Zero-config file database, ideal for local testing but not suited for production concurrency.
 * *Decision*: The application uses SQLAlchemy 2.0, allowing developers to run **SQLite** locally and transition to **PostgreSQL** in staging and production.
+
+---
+
+## Troubleshooting & FAQ
+
+> [!WARNING]
+> Below are common issues encountered during local development and how to resolve them.
+
+**Q: I get a `ConnectionRefusedError` when the LangGraph agent tries to execute a tool.**
+**A:** This typically means the FastMCP servers are not responding or the paths are misconfigured. Ensure that your `.env` contains the correct paths to `mcp_servers/crm_server`, etc.
+
+**Q: The frontend is stuck on "Orchestrating agent state graph...".**
+**A:** The FastAPI backend may have crashed. Check the terminal running `uvicorn`. Ensure that you have a valid API key configured in `.env` for your selected `LLM_PROVIDER`.
+
+**Q: Can I run Andromeda completely offline?**
+**A:** Yes! Set `LLM_PROVIDER=mock` in your backend `.env`. The system will bypass API calls and use local regex heuristics for intent extraction.
+
+---
+
+## Contributing & Extension Guide
+
+Adding new deterministic rules or expanding the Model Context Protocol (MCP) servers is straightforward. 
+
+> [!NOTE]
+> Andromeda is built for enterprise extensibility. MCP servers can be written in any language and attached to the LangGraph runner.
+
+### How to add a new MCP Server
+1. Create a new directory under `mcp_servers/` (e.g., `mcp_servers/shipping_server`).
+2. Write a FastMCP script defining your tools.
+3. Update `backend/app/agent/mcp/client.py` to register the new server stream path.
+4. The LangGraph supervisor will automatically discover the new tools.
 
 ---
 

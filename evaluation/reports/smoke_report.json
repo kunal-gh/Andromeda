@@ -1,0 +1,56 @@
+{
+  "run_id": "6e6afa0c-d070-4222-b2be-8092dc5e13d7",
+  "dataset_path": "evaluation/datasets/golden_v1.json",
+  "sample_count": 3,
+  "elapsed_seconds": 11.119090499996673,
+  "metrics": {
+    "faithfulness": 1.0,
+    "answer_relevancy": 0.8333333333333334,
+    "context_precision": 1.0,
+    "context_recall": 0.9
+  },
+  "composite_score": 0.9416666666666667,
+  "overall_pass": true,
+  "case_results": [
+    {
+      "case_id": "eval-001",
+      "expected_decision": "APPROVED",
+      "actual_decision": "APPROVED",
+      "assistant_message": "Thanks for sharing those details. Your refund for ORD-1001 is approved. Order ORD-1001 is delivered, within the 30-day window, not final sale, and below the $500 escalation threshold.",
+      "triggered_rules": [
+        "R9_ELIGIBLE_STANDARD_REFUND"
+      ],
+      "decision_correct": true,
+      "contexts": [
+        "Standard Return Window",
+        "Eligible Items"
+      ]
+    },
+    {
+      "case_id": "eval-002",
+      "expected_decision": "DENIED",
+      "actual_decision": "DENIED",
+      "assistant_message": "Thanks for sharing those details. I cannot approve the refund for ORD-1002. The item was sold as final sale. Triggered policy: R2_FINAL_SALE.",
+      "triggered_rules": [
+        "R2_FINAL_SALE"
+      ],
+      "decision_correct": true,
+      "contexts": [
+        "Final Sale Items"
+      ]
+    },
+    {
+      "case_id": "eval-003",
+      "expected_decision": "ESCALATED",
+      "actual_decision": "ESCALATED",
+      "assistant_message": "Thanks for sharing those details. I cannot automatically approve ORD-1003; this case has been escalated for human review. The order value is $720.00, which is above the $500 automatic-refund limit. Triggered policy: R4_ESCALATE_OVER_500.",
+      "triggered_rules": [
+        "R4_ESCALATE_OVER_500"
+      ],
+      "decision_correct": true,
+      "contexts": [
+        "High-Value Item Review"
+      ]
+    }
+  ]
+}
