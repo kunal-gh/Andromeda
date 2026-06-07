@@ -558,15 +558,137 @@ The dashboard uses a responsive layout to display chat states and agent reasonin
 
 ## 15. Infrastructure & Cloud-Native Deployment (AWS, Terraform, CI/CD)
 
-The platform is designed to be fully containerized and deployable to cloud environments using Terraform.
+Andromeda features a cloud-native, production-grade deployment topology designed to host containerized workloads on AWS. The design implements serverless infrastructure with zero host operating system maintenance, robust IAM boundary controls, automated CI/CD pipeline enforcement, and automated rollbacks on quality regressions.
 
-### 15.1 Terraform Module Structure (`infra/terraform`)
-* **`main.tf`**: Configures the VPC network topology, ALB load balancers, and Fargate task details.
-* **`variables.tf`**: Sets environment parameters, database configurations, and model providers.
-* **`outputs.tf`**: Exports service domains and load balancer endpoints.
+### 15.1 Cloud Reference Architecture
 
-### 15.2 Deployment Pipeline
-The CI/CD pipeline triggers on every pull request, executing unit checks, evaluating golden datasets, compiling Docker images, and deploying to AWS ECS Fargate tasks using a blue-green swap.
+```
+                                    +-----------------------+
+                                    |     Client Traffic    |
+                                    +-----------┬-----------+
+                                                │ (HTTPS)
+                                                ▼
+                                    +-----------------------+
+                                    | Application Load Balancer
+                                    +-----┬───────────┬-----+
+                                          │           │
+                       /api/* (Port 8000) │           │ /* (Port 3000)
+                                          ▼           ▼
+                                    +───────────+ +───────────+
+                                    | ECS Fargate| | ECS Fargate|
+                                    |  Backend  | |  Frontend  |
+                                    |  Service  | |  Service  |
+                                    +─────┬─────+ +─────┬─────+
+                                          │             │
+                                          ▼             ▼
+                                    +─────────────────────────+
+                                    |  Amazon VPC Private     |
+                                    |  Subnets Security Group |
+                                    +─────────────┬───────────+
+                                                  │
+                                                  ▼
+                                    +─────────────────────────+
+                                    | Amazon RDS PostgreSQL   |
+                                    +-------------------------+
+```
+
+* **Serverless Compute (AWS Fargate)**: Eliminates virtual machine management by running containers on demand. ECS tasks are dynamically allocated and decommissioned based on load profiles.
+* **Image Management (Amazon ECR)**: Dedicated registries manage the backend (`andromeda-backend`) and frontend (`andromeda-frontend`) container repositories. Image immutability is enforced via SHA-256 tags.
+* **Network Isolation**: The application operates inside an Amazon VPC spanning multiple Availability Zones. Tasks execute in private subnets, routing outgoing traffic through a NAT Gateway and incoming requests through an Application Load Balancer (ALB).
+
+---
+
+### 15.2 Terraform Module Structure (`infra/terraform`)
+
+Infrastructure is managed declaratively as code (IaC) to guarantee environment parity between Staging and Production.
+
+* **`main.tf`**:
+  - Sets up the VPC configuration (CIDR block `10.0.0.0/16`, public/private subnets).
+  - Creates the ECS Cluster (`andromeda-cluster`) and registers Fargate task definitions.
+  - Provisions the Application Load Balancer, target groups, and listener rules (routing traffic to port 8000 and port 3000).
+* **`variables.tf`**:
+  - Parameterizes deployment variables (AWS Region `us-east-1`, task CPU/memory sizes, environment configurations).
+* **`outputs.tf`**:
+  - Exports the ALB DNS name, ECS Service names, and ECR repository endpoints.
+
+---
+
+### 15.3 Deployment Pipeline & GitHub Actions Workflow
+
+The CI/CD pipeline triggers on every push to the `main` branch, performing verification, building, and deploying the microservices.
+
+```yaml
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          cd backend && pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          cd backend && python -m pytest -v --cov=app --cov-report=xml
+      - name: Run evaluation suite
+        run: |
+          cd backend && python -m pytest tests/test_eval/ -v
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push backend
+        run: |
+          cd backend
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/andromeda-backend:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/andromeda-backend:${{ github.sha }}
+      - name: Build and push frontend
+        run: |
+          cd frontend
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/andromeda-frontend:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/andromeda-frontend:${{ github.sha }}
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service --cluster andromeda-cluster --service andromeda-backend --force-new-deployment
+          aws ecs update-service --cluster andromeda-cluster --service andromeda-frontend --force-new-deployment
+```
+
+#### Pipeline Stages & Security Boundaries:
+1. **Quality Guardrails (Job `test`)**:
+   - Executes standard unit and integration tests under `pytest`.
+   - Runs the evaluation suite utilizing LLM-as-a-judge patterns via DeepEval and RAGAS, asserting Faithfulness, Answer Relevancy, and Context Precision.
+2. **AWS Authentication (IAM Integration)**:
+   - Authenticates using an IAM User (`github-actions-andromeda`) configured with minimal privilege limits:
+     - `AmazonEC2ContainerRegistryFullAccess`: Authorizes uploading new image tags to the ECR registry.
+     - `AmazonECS_FullAccess`: Authorizes triggering updates on task deployments inside the cluster.
+3. **Container Registry Delivery**:
+   - Generates production-optimized Docker containers using multi-stage builds.
+   - Tags each container with the active GitHub commit SHA, guaranteeing traceability.
+4. **Rolling ECS Update**:
+   - Force-triggers service tasks to fetch the newly generated images.
+   - ECS Fargate coordinates a rolling deployment, executing traffic swaps between old and new tasks to prevent downtime.
 
 ---
 

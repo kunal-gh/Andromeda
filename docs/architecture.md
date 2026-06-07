@@ -1,7 +1,7 @@
-# Worknoon Enterprise AI Operations Platform Architecture
+# Andromeda Enterprise AI Operations Platform Architecture
 
 ## Executive Summary
-Worknoon is an enterprise-grade AI operations platform built to handle complex customer support workflows. It evolves a standard deterministic pipeline into a multi-agent orchestrated state machine using LangGraph, Model Context Protocol (MCP), and Qdrant-powered RAG.
+Andromeda is an enterprise-grade AI operations platform built to handle complex customer support workflows. It evolves a standard deterministic pipeline into a multi-agent orchestrated state machine using LangGraph, Model Context Protocol (MCP), and Qdrant-powered RAG.
 
 ## Core Architecture
 
@@ -18,9 +18,9 @@ The core routing and decision-making is handled by a cyclic directed graph (Lang
 
 ### 3. Model Context Protocol (MCP) Integration
 To secure data access, tools are decoupled into local FastMCP servers:
-- **Worknoon-CRM**: Handles customer profile lookups.
-- **Worknoon-Orders**: Manages order lookups and refund processing.
-- **Worknoon-Policy**: Executes the deterministic policy engine.
+- **Andromeda-CRM**: Handles customer profile lookups.
+- **Andromeda-Orders**: Manages order lookups and refund processing.
+- **Andromeda-Policy**: Executes the deterministic policy engine.
 Communication occurs over stdio streams, strictly isolating backend databases from the LLM execution environment.
 
 ### 4. RAG & Knowledge Graph (Qdrant + NetworkX)
@@ -37,7 +37,7 @@ Communication occurs over stdio streams, strictly isolating backend databases fr
 - **Human Review Queue**: Escalations are persisted in PostgreSQL, pending asynchronous manual review.
 
 ## Deployment Strategy
-- **Backend**: AWS ECS Fargate, managed via Terraform IaC.
-- **Database**: Amazon RDS PostgreSQL for structured data; self-hosted Qdrant for vectors.
-- **Frontend**: Next.js dashboard deployed to Vercel.
-- **CI/CD**: GitHub Actions pipeline triggering automated evaluations before ECR pushes.
+- **Infrastructure**: AWS ECS Fargate serverless containers for both frontend (Next.js) and backend (FastAPI), configured via Terraform IaC.
+- **Image Registry**: Amazon Elastic Container Registry (ECR) for hosting private multi-stage Docker images.
+- **Database**: PostgreSQL for relational CRM, orders, and audits; self-hosted Qdrant for vector embeddings.
+- **CI/CD Pipeline**: GitHub Actions pipeline triggering unit tests, coverage reporting, and automated DeepEval/RAGAS evaluation suites before ECR container build, push, and zero-downtime ECS rolling service deployment.

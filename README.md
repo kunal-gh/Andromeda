@@ -2,6 +2,8 @@
 
 [![Live Production Console](https://img.shields.io/badge/Live_Console-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://andromeda.vercel.app/)
 [![GitHub Actions](https://img.shields.io/github/actions/workflow/status/kunal-gh/Andromeda/deploy.yml?branch=main&style=for-the-badge&logo=github)](https://github.com/kunal-gh/Andromeda/actions)
+[![AWS Infrastructure](https://img.shields.io/badge/AWS-ECS_Fargate_%7C_ECR-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
+[![Terraform IaC](https://img.shields.io/badge/IaC-Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![Evaluations](https://img.shields.io/badge/Evaluations-DeepEval_%7C_RAGAS-8A2BE2?style=for-the-badge)](#-evaluation-framework)
 [![Observability](https://img.shields.io/badge/Observability-OpenTelemetry_%7C_LangFuse-FFA500?style=for-the-badge)](#-observability)
 [![State Machine](https://img.shields.io/badge/Orchestrator-LangGraph-00C4B6?style=for-the-badge)](#-system-architecture)
@@ -725,36 +727,84 @@ CREATE TABLE refund_requests (
 
 ---
 
-## CI/CD Pipeline
+## AWS Production Infrastructure & CI/CD Pipeline
 
-The platform uses GitHub Actions to automate linting, unit testing, and evaluation runs before deploying updates.
+Andromeda is deployed on enterprise-grade, serverless cloud infrastructure on AWS. The deployment process is fully automated via GitHub Actions, implementing continuous integration (CI) test execution, evaluation scanning (DeepEval & RAGAS), Docker containerization, and continuous delivery (CD) to AWS ECS Fargate.
+
+### 1. AWS Cloud Architecture
+
+Both the frontend and backend are containerized and execute as isolated tasks under an Amazon ECS Cluster powered by AWS Fargate. This guarantees serverless execution, auto-scaling, and secure process isolation without requiring virtual machine (EC2) overhead.
 
 ```
-Code Commit 
-    │
-    ▼
-[GitHub Actions runner boots]
-    │
-    ▼
-[Linting & Static Analysis]
-    │  - Ruff check & format validation
-    │  - TypeScript compiler type checks
-    ▼
-[Unit & Integration Tests]
-    │  - Run pytest tests/ against mock SQLite database
-    ▼
-[Evaluation Stage]
-    │  - Boot backend services
-    │  - Run python -m evaluation.run_eval
-    │  - Assert composite quality metric >= 0.85
-    ▼
-[Build & Containerization]
-    │  - Build multi-platform Docker images
-    │  - Push images to Amazon ECR registry
-    ▼
-[Production Deployment]
-       - Deploy to AWS ECS Fargate via Blue-Green swap
+          [ HTTPS Traffic ]
+                  │
+                  ▼
+      [ Application Load Balancer ]
+                  │
+        ┌─────────┴─────────┐
+        │ (Port 3000)       │ (Port 8000)
+        ▼                   ▼
+┌─────────────────┐ ┌─────────────────┐
+│ Next.js Frontend│ │ FastAPI Backend │
+│ (ECS Fargate)   │ │ (ECS Fargate)   │
+└────────┬────────┘ └────────┬────────┘
+         │                   │
+         │   stdio streams   │
+         │ (JSON-RPC / MCP)  │
+         ▼                   ▼
+┌─────────────────────────────────────┐
+│    FastMCP Servers (CRM & Orders)   │
+└────────────────┬────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────┐
+│     PostgreSQL Database Instance    │
+└─────────────────────────────────────┘
 ```
+
+#### AWS Component Architecture Breakdown:
+* **Amazon ECR (Elastic Container Registry)**: Private repositories (`andromeda-backend` and `andromeda-frontend`) store Docker image artifacts tagged with unique GitHub commit SHAs.
+* **Amazon ECS (Elastic Container Service) on AWS Fargate**: Orchestrates container tasks. Tasks execute with specified resource caps (0.5 vCPU and 1.0 GB RAM for backend; 0.25 vCPU and 0.5 GB RAM for frontend) to optimize costs.
+* **IAM Security Profiles**: A zero-trust execution role (`github-actions-andromeda`) allows the GitHub Action runner to authenticate with AWS, push containers to ECR, and execute service updates on ECS.
+* **Network & Security Groups**: Containers execute inside a private VPC. Ingress is restricted via AWS Security Groups, ensuring the backend API endpoints can only be accessed through designated port channels.
+
+---
+
+### 2. GitHub Actions Deployment Pipeline (`deploy.yml`)
+
+The complete test, build, and deployment cycle is fully automated. Every merge or direct push to the `main` branch triggers the multi-job execution:
+
+```
+        [ Code Push to main ]
+                  │
+                  ▼
+       ┌─────────────────────┐
+       │   Job 1: test       │
+       └──────────┬──────────┘
+                  │
+                  ├─ Set up Python 3.12 & Install Dependencies
+                  ├─ Execute Unit & Integration Tests (pytest)
+                  ├─ Run Evaluation Suite (DeepEval & RAGAS)
+                  └─ Upload Code Coverage Artifacts (Codecov)
+                  │
+                  ▼
+       ┌─────────────────────┐
+       │Job 2: build-deploy  │ (Requires Job 1 to Pass)
+       └──────────┬──────────┘
+                  │
+                  ├─ Configure AWS CLI Credentials (via GitHub Secrets)
+                  ├─ Log into Amazon ECR private registry
+                  ├─ Build & tag Backend Docker Image
+                  ├─ Build & tag Frontend Docker Image
+                  ├─ Push Docker Images to Amazon ECR
+                  └─ Trigger Rolling ECS Deployment (Force New Update)
+```
+
+#### Detailed Pipeline Stages:
+1. **Linting & Unit Testing**: Pytest validates the Python Policy Engine's rules, ensuring 100% precision on edge cases (e.g., return windows, item conditions, pricing thresholds).
+2. **Evaluation Suite (DeepEval/RAGAS)**: Runs LLM-as-a-judge scans against the golden dataset. Any failure to meet metric thresholds (Faithfulness $\ge 0.80$, Context Precision $\ge 0.70$) aborts the build automatically, preventing regression.
+3. **Containerization**: Multi-stage Docker builds generate optimized production containers for the FastAPI backend and Next.js frontend, minimizing image size and surface area.
+4. **Zero-Downtime Deployment**: ECS updates the running services using a rolling update strategy, maintaining active Fargate tasks while spinning up new ones to ensure zero service disruption.
 
 * **Rollback Action**: If the DeepEval faithfulness score drops below `0.80` or context precision drops below `0.70`, the deployment pipeline aborts and alerts the engineering team.
 
