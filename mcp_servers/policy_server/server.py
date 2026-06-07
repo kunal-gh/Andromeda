@@ -17,10 +17,10 @@ mcp = FastMCP("andromeda-policy-server")
 @mcp.tool()
 async def read_refund_policy() -> str:
     """
-    Read the current ArcaShop refund policy document.
+    Read the current Andromeda refund policy document.
 
     Returns:
-        Full Markdown text of the ArcaShop refund policy.
+        Full Markdown text of the Andromeda refund policy.
         Used by LLM response_node for context, and by evaluate_refund_policy
         for deterministic rule matching.
     """

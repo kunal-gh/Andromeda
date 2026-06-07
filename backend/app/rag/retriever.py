@@ -1,5 +1,5 @@
 """
-Phase 3 — RAG Pipeline: ChromaDB retriever for ArcaShop refund policy.
+Phase 3 — RAG Pipeline: ChromaDB retriever for Andromeda refund policy.
 
 Splits the policy document into semantic chunks (one per heading section),
 embeds them with sentence-transformers (all-MiniLM-L6-v2, runs locally,
@@ -26,7 +26,7 @@ _client: chromadb.Client | None = None
 _collection: chromadb.Collection | None = None
 _embedder: SentenceTransformer | None = None
 
-COLLECTION_NAME = "arcashop_refund_policy"
+COLLECTION_NAME = "andromeda_refund_policy"
 MODEL_NAME = "all-MiniLM-L6-v2"  # 22MB, fully local, no API key
 
 
@@ -106,7 +106,7 @@ def _split_policy_into_chunks(policy_text: str) -> list[dict]:
 
 def index_policy(force: bool = False) -> int:
     """
-    Index the ArcaShop refund policy into ChromaDB.
+    Index the Andromeda refund policy into ChromaDB.
 
     Args:
         force: If True, clears and rebuilds the collection.

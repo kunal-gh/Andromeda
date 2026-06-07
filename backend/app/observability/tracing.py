@@ -1,4 +1,4 @@
-"""OpenTelemetry tracing setup for the Worknoon agent."""
+"""OpenTelemetry tracing setup for the Andromeda agent."""
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def init_tracer():
         from opentelemetry.sdk.resources import Resource, SERVICE_NAME
 
         resource = Resource(attributes={
-            SERVICE_NAME: "worknoon-agent", 
+            SERVICE_NAME: "andromeda-agent", 
             "service.version": "2.0.0", 
             "deployment.environment": "production"
         })
@@ -40,7 +40,7 @@ def init_tracer():
         span_processor = BatchSpanProcessor(otlp_exporter)
         tracer_provider.add_span_processor(span_processor)
         
-        return trace.get_tracer("worknoon.agent")
+        return trace.get_tracer("andromeda.agent")
     except ImportError:
         logger.warning("opentelemetry not installed. Skipping global tracer init.")
         return None

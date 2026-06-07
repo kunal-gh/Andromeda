@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     agent_architecture: str = "single"  # "single" | "multi"
 
     seed_data_path: Path = Path(__file__).resolve().parents[1] / "data" / "synthetic_crm.json"
-    policy_path: Path = Path(__file__).resolve().parents[1] / "data" / "arcashop_refund_policy.md"
+    policy_path: Path = Path(__file__).resolve().parents[1] / "data" / "andromeda_refund_policy.md"
 
 
 @lru_cache

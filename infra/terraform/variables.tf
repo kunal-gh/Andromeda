@@ -11,26 +11,26 @@ variable "db_password" {
 }
 
 resource "aws_ecr_repository" "backend" {
-  name = "worknoon-backend"
+  name = "andromeda-backend"
 }
 
 resource "aws_ecr_repository" "frontend" {
-  name = "worknoon-frontend"
+  name = "andromeda-frontend"
 }
 
 # Security Groups and DB Subnets (stubbed for completeness)
 resource "aws_security_group" "alb" {
-  name_prefix = "worknoon-alb-sg"
+  name_prefix = "andromeda-alb-sg"
   vpc_id      = module.vpc.vpc_id
 }
 
 resource "aws_security_group" "db" {
-  name_prefix = "worknoon-db-sg"
+  name_prefix = "andromeda-db-sg"
   vpc_id      = module.vpc.vpc_id
 }
 
 resource "aws_db_subnet_group" "main" {
-  name       = "worknoon-db-subnet-group"
+  name       = "andromeda-db-subnet-group"
   subnet_ids = module.vpc.private_subnets
 }
 
@@ -41,5 +41,5 @@ resource "aws_instance" "qdrant" {
 }
 
 resource "aws_secretsmanager_secret" "openai" {
-  name = "worknoon-openai-key"
+  name = "andromeda-openai-key"
 }

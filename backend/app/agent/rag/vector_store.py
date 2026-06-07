@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 # Lazy initialization
 _qdrant_client = None
 _embeddings = None
-COLLECTION_NAME = "worknoon_knowledge"
+COLLECTION_NAME = "andromeda_knowledge"
 
 def get_qdrant_client():
     global _qdrant_client

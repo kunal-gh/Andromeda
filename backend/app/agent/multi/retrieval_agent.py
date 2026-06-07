@@ -25,7 +25,7 @@ async def retrieval_agent_answer(question: str, conversation_id: str) -> dict[st
         if settings.rag_enabled:
             qdrant = QdrantClient(host=settings.chroma_host, port=settings.chroma_port) # To be updated to qdrant_host in Phase 4
             embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-            vector_store = QdrantVectorStore(client=qdrant, collection_name="worknoon_knowledge", embedding=embeddings)
+            vector_store = QdrantVectorStore(client=qdrant, collection_name="andromeda_knowledge", embedding=embeddings)
             retriever = vector_store.as_retriever(search_kwargs={"k": 3})
             llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
             rag_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)

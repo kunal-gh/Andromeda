@@ -1,6 +1,6 @@
 """tool_node — Node 5: CRM and Order lookups.
 
-Reads the ArcaShop refund policy document, fetches customer profile and
+Reads the Andromeda refund policy document, fetches customer profile and
 order details from the database. Supports both local SQLAlchemy mode (default)
 and MCP server mode (Phase 2, TOOL_MODE=mcp).
 """
@@ -48,7 +48,7 @@ async def tool_node(state: AgentState, config: RunnableConfig) -> dict:
     await record_trace(
         db, conversation_id,
         "tool.read_refund_policy",
-        "ArcaShop refund policy loaded via MCP" if use_mcp else "ArcaShop refund policy loaded",
+        "Andromeda refund policy loaded via MCP" if use_mcp else "Andromeda refund policy loaded",
         {"characters": len(policy_text)},
     )
 

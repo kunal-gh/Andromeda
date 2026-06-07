@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-scripts/index_rag.py — One-time script to index the ArcaShop refund policy into ChromaDB.
+scripts/index_rag.py — One-time script to index the Andromeda refund policy into ChromaDB.
 
 Run this before enabling RAG_ENABLED=true:
     python scripts/index_rag.py
@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Index ArcaShop policy into ChromaDB")
+    parser = argparse.ArgumentParser(description="Index Andromeda policy into ChromaDB")
     parser.add_argument("--force", action="store_true", help="Rebuild index from scratch")
     parser.add_argument("--check", action="store_true", help="Print stats only, no indexing")
     args = parser.parse_args()
@@ -28,12 +28,12 @@ def main():
 
     if args.check:
         count = collection.count()
-        print(f"\nChromaDB collection 'arcashop_refund_policy'")
+        print(f"\nChromaDB collection 'andromeda_refund_policy'")
         print(f"  Chunks indexed: {count}")
         print(f"  Status: {'✅ Ready' if count > 0 else '⚠️  Empty — run without --check to index'}\n")
         return
 
-    print("\nIndexing ArcaShop refund policy into ChromaDB...")
+    print("\nIndexing Andromeda refund policy into ChromaDB...")
     count = index_policy(force=args.force)
     print(f"✅ Indexed {count} policy chunks")
 

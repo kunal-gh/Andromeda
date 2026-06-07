@@ -28,7 +28,7 @@ INJECTION_PATTERNS = (
     "i am the admin",
     "i am your administrator",
     "i am a developer",
-    "i am worknoon staff",
+    "i am andromeda staff",
     # Persona manipulation
     "pretend you are",
     "pretend to be",

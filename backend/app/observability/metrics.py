@@ -1,4 +1,4 @@
-"""Custom Prometheus metrics for the Worknoon agent."""
+"""Custom Prometheus metrics for the Andromeda agent."""
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,13 +12,13 @@ try:
     from prometheus_client import Counter, Histogram, Gauge, Info
 
     # Request metrics
-    REQUEST_COUNT = Counter("worknoon_requests_total", "Total requests", ["endpoint", "method", "status"])
-    REQUEST_LATENCY = Histogram("worknoon_request_duration_seconds", "Request latency", ["endpoint"])
-    AGENT_DECISION_COUNT = Counter("worknoon_agent_decisions_total", "Agent decisions", ["decision_type", "agent_name"])
-    LLM_TOKEN_COUNT = Counter("worknoon_llm_tokens_total", "LLM tokens consumed", ["model", "provider"])
-    INJECTION_ATTEMPT_COUNT = Counter("worknoon_injection_attempts_total", "Injection attempts", ["risk_level", "blocked"])
-    CONVERSATION_GAUGE = Gauge("worknoon_active_conversations", "Active conversations")
-    SYSTEM_INFO = Info("worknoon_system", "System information")
+    REQUEST_COUNT = Counter("andromeda_requests_total", "Total requests", ["endpoint", "method", "status"])
+    REQUEST_LATENCY = Histogram("andromeda_request_duration_seconds", "Request latency", ["endpoint"])
+    AGENT_DECISION_COUNT = Counter("andromeda_agent_decisions_total", "Agent decisions", ["decision_type", "agent_name"])
+    LLM_TOKEN_COUNT = Counter("andromeda_llm_tokens_total", "LLM tokens consumed", ["model", "provider"])
+    INJECTION_ATTEMPT_COUNT = Counter("andromeda_injection_attempts_total", "Injection attempts", ["risk_level", "blocked"])
+    CONVERSATION_GAUGE = Gauge("andromeda_active_conversations", "Active conversations")
+    SYSTEM_INFO = Info("andromeda_system", "System information")
 except ImportError:
     logger.warning("prometheus_client not installed. Metrics disabled.")
     AGENT_DECISION_COUNT = MockCounter()

@@ -18,7 +18,7 @@ class Relationship:
     type: str
     properties: dict[str, Any]
 
-class WorknoonKnowledgeGraph:
+class AndromedaKnowledgeGraph:
     def __init__(self):
         try:
             import networkx as nx
@@ -74,16 +74,16 @@ class WorknoonKnowledgeGraph:
                 results.append({"id": node_id, **data})
         return results
 
-_knowledge_graph: WorknoonKnowledgeGraph | None = None
+_knowledge_graph: AndromedaKnowledgeGraph | None = None
 
-def get_knowledge_graph() -> WorknoonKnowledgeGraph:
+def get_knowledge_graph() -> AndromedaKnowledgeGraph:
     global _knowledge_graph
     if _knowledge_graph is None:
-        _knowledge_graph = WorknoonKnowledgeGraph()
+        _knowledge_graph = AndromedaKnowledgeGraph()
         _seed_knowledge_graph(_knowledge_graph)
     return _knowledge_graph
 
-def _seed_knowledge_graph(kg: WorknoonKnowledgeGraph):
+def _seed_knowledge_graph(kg: AndromedaKnowledgeGraph):
     if not kg._available:
         return
     try:

@@ -12,7 +12,7 @@ provider "aws" {
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
-  name = "worknoon-vpc"
+  name = "andromeda-vpc"
   cidr = "10.0.0.0/16"
   azs = ["${var.aws_region}a", "${var.aws_region}b"]
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
@@ -22,14 +22,14 @@ module "vpc" {
 }
 
 # ECS Cluster
-resource "aws_ecs_cluster" "worknoon" {
-  name = "worknoon-cluster"
+resource "aws_ecs_cluster" "andromeda" {
+  name = "andromeda-cluster"
   setting { name = "containerInsights", value = "enabled" }
 }
 
 # Backend Service
 resource "aws_ecs_task_definition" "backend" {
-  family = "worknoon-backend"
+  family = "andromeda-backend"
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu = "512"
@@ -39,7 +39,7 @@ resource "aws_ecs_task_definition" "backend" {
     image = "${aws_ecr_repository.backend.repository_url}:latest"
     portMappings = [{ containerPort = 8000, protocol = "tcp" }]
     environment = [
-      { name = "DATABASE_URL", value = "postgresql://${aws_db_instance.main.endpoint}/worknoon" },
+      { name = "DATABASE_URL", value = "postgresql://${aws_db_instance.main.endpoint}/andromeda" },
       { name = "QDRANT_HOST", value = aws_instance.qdrant.private_ip },
     ]
     secrets = [
@@ -47,14 +47,14 @@ resource "aws_ecs_task_definition" "backend" {
     ]
     logConfiguration = {
       logDriver = "awslogs"
-      options = { "awslogs-group" = "/ecs/worknoon-backend", "awslogs-region" = var.aws_region, "awslogs-stream-prefix" = "ecs" }
+      options = { "awslogs-group" = "/ecs/andromeda-backend", "awslogs-region" = var.aws_region, "awslogs-stream-prefix" = "ecs" }
     }
   }])
 }
 
 # Application Load Balancer
 resource "aws_lb" "main" {
-  name = "worknoon-alb"
+  name = "andromeda-alb"
   internal = false
   load_balancer_type = "application"
   security_groups = [aws_security_group.alb.id]
@@ -63,13 +63,13 @@ resource "aws_lb" "main" {
 
 # RDS PostgreSQL (replace SQLite)
 resource "aws_db_instance" "main" {
-  identifier = "worknoon-db"
+  identifier = "andromeda-db"
   engine = "postgres"
   engine_version = "16"
   instance_class = "db.t3.micro"
   allocated_storage = 20
-  db_name = "worknoon"
-  username = "worknoon"
+  db_name = "andromeda"
+  username = "andromeda"
   password = var.db_password
   vpc_security_group_ids = [aws_security_group.db.id]
   db_subnet_group_name = aws_db_subnet_group.main.name
