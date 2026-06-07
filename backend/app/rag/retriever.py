@@ -15,9 +15,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TypedDict
 
-import chromadb
-from chromadb.config import Settings as ChromaSettings
-from sentence_transformers import SentenceTransformer
+try:
+    import chromadb
+    from chromadb.config import Settings as ChromaSettings
+    from sentence_transformers import SentenceTransformer
+    ML_AVAILABLE = True
+except ImportError:
+    chromadb = None
+    ChromaSettings = None
+    SentenceTransformer = None
+    ML_AVAILABLE = False
 
 from app.core.config import get_settings
 
@@ -38,8 +45,10 @@ class PolicyChunk(TypedDict):
 
 # ── Initialisation ────────────────────────────────────────────────────────
 
-def _get_embedder() -> SentenceTransformer:
+def _get_embedder():
     global _embedder
+    if not ML_AVAILABLE:
+        return None
     if _embedder is None:
         _embedder = SentenceTransformer(MODEL_NAME)
     return _embedder
@@ -114,6 +123,9 @@ def index_policy(force: bool = False) -> int:
     Returns:
         Number of chunks indexed.
     """
+    if not ML_AVAILABLE:
+        return 0
+
     collection = _get_collection()
 
     if not force and collection.count() > 0:
@@ -154,6 +166,9 @@ def retrieve_relevant_policy(query: str) -> list[PolicyChunk]:
         List of PolicyChunk dicts sorted by relevance (highest first),
         filtered to those above settings.rag_score_threshold.
     """
+    if not ML_AVAILABLE:
+        return []
+
     settings = get_settings()
     collection = _get_collection()
 
