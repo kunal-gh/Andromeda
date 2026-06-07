@@ -34,6 +34,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install -r requirements-ml.txt
 
       - name: Run policy tests
         env:
@@ -119,6 +120,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r backend/requirements.txt
+          pip install -r backend/requirements-ml.txt
 
       - name: Run smoke evaluation
         env:
