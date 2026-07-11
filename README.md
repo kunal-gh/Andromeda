@@ -2,8 +2,6 @@
 
 [![Live Production Console](https://img.shields.io/badge/Live_Console-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://andromeda.vercel.app/)
 [![GitHub Actions](https://img.shields.io/github/actions/workflow/status/kunal-gh/Andromeda/deploy.yml?branch=main&style=for-the-badge&logo=github)](https://github.com/kunal-gh/Andromeda/actions)
-[![AWS Infrastructure](https://img.shields.io/badge/AWS-ECS_Fargate_%7C_ECR-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
-[![Terraform IaC](https://img.shields.io/badge/IaC-Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![Evaluations](https://img.shields.io/badge/Evaluations-DeepEval_%7C_RAGAS-8A2BE2?style=for-the-badge)](#-evaluation-framework)
 [![Observability](https://img.shields.io/badge/Observability-OpenTelemetry_%7C_LangFuse-FFA500?style=for-the-badge)](#-observability)
 [![State Machine](https://img.shields.io/badge/Orchestrator-LangGraph-00C4B6?style=for-the-badge)](#-system-architecture)
@@ -55,7 +53,7 @@ Andromeda mitigates these risks by isolating the LLM into two non-mutating roles
 ## Quick Start Guide
 
 > [!TIP]
-> Get Andromeda running locally in under 2 minutes using standard package managers.
+> Get Andromeda running locally in under 2 minutes.
 
 ### 1. Clone the Repository
 ```bash
@@ -63,32 +61,29 @@ git clone https://github.com/kunal-gh/Andromeda.git
 cd Andromeda
 ```
 
-### 2. Setup the Backend
-Andromeda uses `poetry` or standard `venv` for Python dependency management.
+### 2. Run Locally
+
+**Backend (Python FastAPI)**
 ```bash
 cd backend
-# Create environment and install dependencies
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-
-# Copy environment variables
 cp .env.example .env
 
 # Boot the FastAPI and MCP servers
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-### 3. Setup the Frontend
-The Next.js app router provides the support console interface.
+**Frontend (Next.js)**
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### 4. Access the Platform
-Navigate to [http://localhost:3000](http://localhost:3000) to view the Support Console. The system is pre-seeded with synthetic CRM data for immediate testing.
+### 3. Access the Platform
+Navigate to [http://localhost:3000](http://localhost:3000) to view the Support Console.
 
 ---
 
@@ -727,27 +722,27 @@ CREATE TABLE refund_requests (
 
 ---
 
-## AWS Production Infrastructure & CI/CD Pipeline
+## Vercel Production Infrastructure & CI/CD Pipeline
 
-Andromeda is deployed on enterprise-grade, serverless cloud infrastructure on AWS. The deployment process is fully automated via GitHub Actions, implementing continuous integration (CI) test execution, evaluation scanning (DeepEval & RAGAS), Docker containerization, and continuous delivery (CD) to AWS ECS Fargate.
+Andromeda is deployed as a **monolithic serverless application** on Vercel. This deployment strategy provides enterprise-grade scalability, zero maintenance overhead, and a 100% free hosting tier (Hobby plan) without requiring a credit card.
 
-### 1. AWS Cloud Architecture
+### 1. Vercel Cloud Architecture
 
-Both the frontend and backend are containerized and execute as isolated tasks under an Amazon ECS Cluster powered by AWS Fargate. This guarantees serverless execution, auto-scaling, and secure process isolation without requiring virtual machine (EC2) overhead.
+Both the Next.js frontend and the FastAPI backend are deployed to Vercel using a single repository integration.
 
 ```
           [ HTTPS Traffic ]
                   │
                   ▼
-      [ Application Load Balancer ]
+         [ Vercel Edge Network ]
                   │
         ┌─────────┴─────────┐
-        │ (Port 3000)       │ (Port 8000)
+        │                   │
         ▼                   ▼
-┌─────────────────┐ ┌─────────────────┐
-│ Next.js Frontend│ │ FastAPI Backend │
-│ (ECS Fargate)   │ │ (ECS Fargate)   │
-└────────┬────────┘ └────────┬────────┘
+┌─────────────────┐ ┌─────────────────────────┐
+│ Next.js Frontend│ │ FastAPI Backend (Python)│
+│ (Vercel Edge)   │ │ (Vercel Serverless)     │
+└────────┬────────┘ └────────┬────────────────┘
          │                   │
          │   stdio streams   │
          │ (JSON-RPC / MCP)  │
@@ -758,271 +753,36 @@ Both the frontend and backend are containerized and execute as isolated tasks un
                  │
                  ▼
 ┌─────────────────────────────────────┐
-│     PostgreSQL Database Instance    │
+│       SQLite Database (Local)       │
 └─────────────────────────────────────┘
 ```
 
-#### AWS Component Architecture Breakdown:
-* **Amazon ECR (Elastic Container Registry)**: Private repositories (`andromeda-backend` and `andromeda-frontend`) store Docker image artifacts tagged with unique GitHub commit SHAs.
-* **Amazon ECS (Elastic Container Service) on AWS Fargate**: Orchestrates container tasks. Tasks execute with specified resource caps (0.5 vCPU and 1.0 GB RAM for backend; 0.25 vCPU and 0.5 GB RAM for frontend) to optimize costs.
-* **IAM Security Profiles**: A zero-trust execution role (`github-actions-andromeda`) allows the GitHub Action runner to authenticate with AWS, push containers to ECR, and execute service updates on ECS.
-* **Network & Security Groups**: Containers execute inside a private VPC. Ingress is restricted via AWS Security Groups, ensuring the backend API endpoints can only be accessed through designated port channels.
+#### Architecture Breakdown:
+* **Vercel Serverless Functions**: The FastAPI application is deployed as a Serverless Python Function. It is configured in `vercel.json` with a 60-second maximum duration timeout to ensure LangGraph has sufficient time to execute complex reasoning steps.
+* **Vercel Next.js Edge**: The frontend is deployed to Vercel's Edge Network for global low-latency delivery.
+* **Storage**: The SQLite database writes to `/tmp/andromeda.db`, which is the only writable partition in a serverless environment.
 
 ---
 
-### 2. GitHub Actions Deployment Pipeline (`deploy.yml`)
+### 2. GitHub Actions Deployment Pipeline (`ci.yml`)
 
-The complete test, build, and deployment cycle is fully automated. Every merge or direct push to the `main` branch triggers the multi-job execution:
+The complete test cycle is fully automated. Every merge or direct push to the `main` branch triggers the multi-job execution:
 
 ```
         [ Code Push to main ]
                   │
                   ▼
        ┌─────────────────────┐
-       │   Job 1: test       │
+       │   GitHub Actions    │
        └──────────┬──────────┘
                   │
                   ├─ Set up Python 3.12 & Install Dependencies
                   ├─ Execute Unit & Integration Tests (pytest)
                   ├─ Run Evaluation Suite (DeepEval & RAGAS)
+                  ├─ TypeScript Type Check
                   └─ Upload Code Coverage Artifacts (Codecov)
                   │
                   ▼
-       ┌─────────────────────┐
-       │Job 2: build-deploy  │ (Requires Job 1 to Pass)
-       └──────────┬──────────┘
-                  │
-                  ├─ Configure AWS CLI Credentials (via GitHub Secrets)
-                  ├─ Log into Amazon ECR private registry
-                  ├─ Build & tag Backend Docker Image
-                  ├─ Build & tag Frontend Docker Image
-                  ├─ Push Docker Images to Amazon ECR
-                  └─ Trigger Rolling ECS Deployment (Force New Update)
+             [ Vercel CI ]
+       (Deploys automatically if passing)
 ```
-
-#### Detailed Pipeline Stages:
-1. **Linting & Unit Testing**: Pytest validates the Python Policy Engine's rules, ensuring 100% precision on edge cases (e.g., return windows, item conditions, pricing thresholds).
-2. **Evaluation Suite (DeepEval/RAGAS)**: Runs LLM-as-a-judge scans against the golden dataset. Any failure to meet metric thresholds (Faithfulness $\ge 0.80$, Context Precision $\ge 0.70$) aborts the build automatically, preventing regression.
-3. **Containerization**: Multi-stage Docker builds generate optimized production containers for the FastAPI backend and Next.js frontend, minimizing image size and surface area.
-4. **Zero-Downtime Deployment**: ECS updates the running services using a rolling update strategy, maintaining active Fargate tasks while spinning up new ones to ensure zero service disruption.
-
-* **Rollback Action**: If the DeepEval faithfulness score drops below `0.80` or context precision drops below `0.70`, the deployment pipeline aborts and alerts the engineering team.
-
----
-
-## Testing
-
-Andromeda's testing strategy covers unit logic, system integrations, and adversarial safety.
-
-### Pytest Test Suite
-The backend is validated by a Pytest suite containing over 50 assertions:
-* `test_exactly_30_days_is_approved`: Asserts that an order delivered exactly 30 days ago is approved.
-* `test_31_days_is_denied`: Asserts that an order delivered 31 days ago is denied.
-* `test_price_500_escalation`: Asserts that orders over $500.00 are escalated.
-* `test_adversarial_jailbreaks`: Asserts that all 35 prompt injection patterns are correctly flagged.
-
-### Load & Reliability Testing
-* **Concurrency**: We run load tests simulating 100 concurrent requests using Locust.
-* **Latency Profile**: Edge response times are tracked under load:
-
-```text
-Percentile   Latency
-p50          120ms
-p95          850ms (includes LLM call)
-p99          1.2s
-```
-
----
-
-## Scalability
-
-The roadmap details Andromeda's evolution from a single agent prototype to a distributed, enterprise-scale platform.
-
-```
-Phase 1: Basic Agent  ──> Phase 2: LangGraph State Machine  ──> Phase 3: MCP Decoupling
-                                                                      │
-                                                                      ▼
-Phase 6: Observability <── Phase 5: CI/CD Evaluations <── Phase 4: Hybrid Graph RAG
-    │
-    ▼
-Phase 7: Next.js UI   ──> Phase 8: Kubernetes (EKS)  ──> Phase 9: Distributed Scale
-```
-
-* **Phases 1-3 (Foundations)**: Move logic to a LangGraph state machine, decouple database layers using FastMCP, and run local checkpointers.
-* **Phases 4-6 (Production Ready)**: Integrate vector (Qdrant) and graph (Neo4j) databases, add automated DeepEval test runs to the CI/CD pipeline, and configure OpenTelemetry dashboards.
-* **Phases 7-10 (Enterprise Scale)**: Migrate services to Kubernetes (EKS), implement Redis cache clustering, and deploy cross-region replication for high-availability setups.
-
----
-
-## Tradeoff Analysis
-
-Our architectural decisions balance simplicity, developer velocity, and operational safety.
-
-### 1. State Machine: LangGraph vs CrewAI
-* *LangGraph*: Offers precise state control and supports cyclic graph flows, making it ideal for deterministic state routing.
-* *CrewAI*: Tailored for open-ended agent collaboration, but lacks deterministic routing and is prone to context drift.
-* *Decision*: **LangGraph** was selected to ensure state transitions follow defined logic trees.
-
-### 2. Database: Qdrant vs Pinecone
-* *Qdrant*: Supports self-hosting, provides fast local setups, and offers sub-millisecond search latencies.
-* *Pinecone*: Fully managed cloud service, but introduces network latency and cannot be run offline for local testing.
-* *Decision*: **Qdrant** was selected to allow developers to run the full vector search stack locally.
-
-### 3. API Communication: Server-Sent Events (SSE) vs WebSockets
-* *SSE*: Lightweight, operates over standard HTTP, and includes native browser auto-reconnect support. It is highly compatible with serverless runtimes.
-* *WebSockets*: Supports bidirectional streaming, but introduces management overhead and does not scale easily in serverless architectures.
-* *Decision*: **SSE** was chosen for streaming agent execution traces to the browser client.
-
-### 4. Database: PostgreSQL vs SQLite
-* *PostgreSQL*: Production-grade database supporting concurrent write transactions and ACID locking.
-* *SQLite*: Zero-config file database, ideal for local testing but not suited for production concurrency.
-* *Decision*: The application uses SQLAlchemy 2.0, allowing developers to run **SQLite** locally and transition to **PostgreSQL** in staging and production.
-
----
-
-## Troubleshooting & FAQ
-
-> [!WARNING]
-> Below are common issues encountered during local development and how to resolve them.
-
-**Q: I get a `ConnectionRefusedError` when the LangGraph agent tries to execute a tool.**
-**A:** This typically means the FastMCP servers are not responding or the paths are misconfigured. Ensure that your `.env` contains the correct paths to `mcp_servers/crm_server`, etc.
-
-**Q: The frontend is stuck on "Orchestrating agent state graph...".**
-**A:** The FastAPI backend may have crashed. Check the terminal running `uvicorn`. Ensure that you have a valid API key configured in `.env` for your selected `LLM_PROVIDER`.
-
-**Q: Can I run Andromeda completely offline?**
-**A:** Yes! Set `LLM_PROVIDER=mock` in your backend `.env`. The system will bypass API calls and use local regex heuristics for intent extraction.
-
----
-
-## Contributing & Extension Guide
-
-Adding new deterministic rules or expanding the Model Context Protocol (MCP) servers is straightforward. 
-
-> [!NOTE]
-> Andromeda is built for enterprise extensibility. MCP servers can be written in any language and attached to the LangGraph runner.
-
-### How to add a new MCP Server
-1. Create a new directory under `mcp_servers/` (e.g., `mcp_servers/shipping_server`).
-2. Write a FastMCP script defining your tools.
-3. Update `backend/app/agent/mcp/client.py` to register the new server stream path.
-4. The LangGraph supervisor will automatically discover the new tools.
-
----
-
-## Repository Tour
-
-```text
-andromeda/
-├── backend/
-│   ├── app/
-│   │   ├── agent/                 # Agent logic & state machine
-│   │   │   ├── graph/             # LangGraph state nodes & edges
-│   │   │   │   ├── builder.py     # Graph builder and routing edges
-│   │   │   │   └── state.py       # AgentState TypedDict schema
-│   │   │   ├── mcp/               # FastMCP client configurations
-│   │   │   ├── multi/             # Multi-Agent supervisor & worker nodes
-│   │   │   ├── rag/               # Retrieval scripts (Qdrant + NetworkX)
-│   │   │   │   ├── hybrid_query.py# Vector + Graph search coordinator
-│   │   │   │   └── vector_store.py# Qdrant client & embedding logic
-│   │   │   ├── guardrails.py      # Regex prompt safety scanner
-│   │   │   ├── policy.py          # Deterministic Python policy engine
-│   │   │   ├── providers.py       # Multi-provider LLM adapters
-│   │   │   ├── runner.py          # State machine runner entry point
-│   │   │   └── tools.py           # Database query tool definitions
-│   │   ├── api/                   # FastAPI routing endpoints
-│   │   │   └── routes.py          # Chat endpoints & SSE stream setup
-│   │   ├── db/                    # Relational schema configurations
-│   │   │   ├── database.py        # SQLAlchemy session initialization
-│   │   │   ├── models.py          # Database models (Customer, Order)
-│   │   │   └── seed.py            # Synthetic CRM database seeder
-│   │   ├── observability/         # OpenTelemetry & LangFuse instrumentation
-│   │   │   ├── metrics.py         # Prometheus metrics declarations
-│   │   │   └── tracing.py         # Tracing instrumentation setups
-│   │   ├── safety/                # Human-in-the-loop and red teaming
-│   │   │   ├── human_review.py    # Escalation queue management
-│   │   │   └── red_team.py        # Red teaming tests
-│   │   └── main.py                # FastAPI app & lifespan configuration
-│   └── tests/                     # Pytest testing directory
-│       └── test_policy.py         # Policy assertions & guardrail tests
-├── frontend/
-│   ├── app/                       # Next.js App Router directories
-│   ├── components/                # React visual components
-│   │   ├── agent-flow/            # Agent state flow visualization
-│   │   │   └── AgentFlowVisualizer.tsx
-│   │   ├── metrics-dashboard/     # System performance dashboard
-│   │   │   └── MetricsDashboard.tsx
-│   │   └── SupportConsole.tsx     # Support interface & admin details view
-│   └── package.json               # Frontend dependencies
-├── mcp_servers/                   # MCP server implementations
-│   ├── crm_server/                # FastMCP server for CRM data
-│   ├── orders_server/             # FastMCP server for order database
-│   └── policy_server/             # FastMCP server for policy execution
-├── docker-compose.yml             # Local multi-container deploy script
-├── DOCUMENTATION.md               # Detailed system design specification
-└── README.md                      # Project overview & architectural notes
-```
-
----
-
-## Architectural Patterns & Technology Mapping
-
-The table below details how various system components map to standard enterprise engineering patterns, protocols, and architectural paradigms implemented within the Andromeda codebase.
-
-| System Component | Architectural Pattern | Technologies & Protocols |
-| :--- | :--- | :--- |
-| **LangGraph Core** | Multi-Agent Orchestration | State Machine, Cyclic Graphs, MemorySaver, Supervisor Routing |
-| **backend/mcp_servers/** | Model Context Protocol (MCP) | FastMCP, Tool Decoupling, stdio streams, Remote Tool Invocation |
-| **backend/rag/hybrid_query.py** | Hybrid GraphRAG | Vector Indexing (Qdrant), Relation Mapping (NetworkX/Neo4j) |
-| **backend/eval/run_eval.py** | LLM Evaluation & Guardrails | DeepEval, RAGAS, Faithfulness, Relevancy, Prompt Injection Scan |
-| **backend/observability/** | Observability & Telemetry | OpenTelemetry, Prometheus, Grafana, LangFuse Node Tracing |
-| **backend/safety/human_review.py** | Human-in-the-Loop | Escalation Queues, Audit Logging, Manual Authorization |
-| **backend/tests/test_policy.py** | Software Quality Assurance | Pytest, Edge-case Testing, Assertions, CI/CD Integration |
-| **docker-compose.yml** | Infrastructure & DevOps | Multi-container setups, Docker, GitHub Actions, AWS ECS Fargate |
-
----
-
-## Future Roadmap
-
-```
-            +──────────────────────────────────────────────────+
-            |      Andromeda Enterprise AI Platform Roadmap    |
-            +────────────────────────┬─────────────────────────+
-                                     │
-                                     ▼
-            +──────────────────────────────────────────────────+
-            | Phase 1: Real-time Multi-Agent Operations (Active)|
-            +────────────────────────┬─────────────────────────+
-                                     │
-                                     ▼
-            +──────────────────────────────────────────────────+
-            | Phase 2: Distributed Kubernetes Deployments      |
-            +────────────────────────┬─────────────────────────+
-                                     │
-                                     ▼
-            +──────────────────────────────────────────────────+
-            | Phase 3: GraphRAG Scaling (Neo4j Cluster)        |
-            +────────────────────────┬─────────────────────────+
-                                     │
-                                     ▼
-            +──────────────────────────────────────────────────+
-            | Phase 4: Dynamic Policy Engine Compiler          |
-            +──────────────────────────────────────────────────+
-```
-
-### Phase 1: Real-time Multi-Agent Operations (Active)
-* Core LangGraph state machine execution.
-* Multi-provider LLM support with offline heuristic fallbacks.
-* Real-time trace event streaming using Server-Sent Events (SSE).
-
-### Phase 2: Distributed Kubernetes Deployments
-* Containerize backend modules for deployment on AWS EKS.
-* Configure auto-scaling rules based on incoming request metrics.
-
-### Phase 3: GraphRAG Scaling
-* Migrate in-memory NetworkX graphs to a persistent Neo4j cluster.
-* Implement graph-based semantic search to support complex queries across millions of database nodes.
-
-### Phase 4: Dynamic Policy Engine Compiler
-* Design a compiler that translates natural language company policies into executable Python rules, making it easier for administrators to update operational guidelines.
