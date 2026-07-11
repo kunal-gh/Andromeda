@@ -31,9 +31,8 @@ fastmcp>=0.4.0
 mcp>=1.3.0
 
 # ── Phase 4: RAG (Qdrant + NetworkX) ──────────────────────────────
-# Note: Heavy ML dependencies (sentence-transformers, qdrant-client) 
-# have been moved to requirements-ml.txt to keep the Vercel 
-# Serverless deployment under 250MB.
+# Heavy ML deps (sentence-transformers, qdrant-client) are in
+# requirements-ml.txt — install separately when running RAG stack.
 
 # ── Phase 5: Evaluation ───────────────────────────────────────────
 # deepeval>=1.0.0

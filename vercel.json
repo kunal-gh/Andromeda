@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "name": "andromeda-frontend",
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/.next",
+  "installCommand": "cd frontend && npm install",
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
+  "env": {
+    "NEXT_PUBLIC_API_BASE_URL": "@andromeda_backend_url"
+  }
+}
