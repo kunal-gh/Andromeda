@@ -1,82 +1,45 @@
 # Andromeda — Deployment Guide
 
-## Verified Free-Tier Architecture ($0/month, No Credit Card)
+This project is configured as a **monolithic Vercel deployment**. Both the Next.js frontend and the FastAPI + LangGraph backend are deployed to Vercel using a single repository integration.
 
-| Layer | Platform | Plan | Credit Card? | Cost |
-|---|---|---|---|---|
-| Frontend (Next.js) | Vercel | Hobby (Free) | ? No | $0 |
-| Backend (FastAPI + LangGraph) | Hugging Face Spaces | Blank Docker (Free) | ? No | $0 |
-| LLM | Gemini 2.0 Flash | Google AI Studio Free | ? No | $0 |
-| CI/CD | GitHub Actions | Free (public repo) | ? No | $0 |
+## Vercel Architecture ($0/month)
 
-**Total: $0/month. Zero credit cards required.**
+| Layer | Platform | Plan | Cost |
+|---|---|---|---|
+| Frontend (Next.js) | Vercel | Hobby (Free) | $0 |
+| Backend (FastAPI + LangGraph) | Vercel (Python Serverless) | Hobby (Free) | $0 |
+| Database | SQLite (local) ? Neon (Postgres) | Free | $0 |
+| LLM | Gemini 2.0 Flash | Google AI Studio Free | $0 |
 
-> ?? **Why Hugging Face Spaces?** Hugging Face allows you to host Docker containers
-> for free. Because it's Hugging Face, hosting your AI backend here sends a very
-> strong signal on your resume that you are embedded in the AI engineering ecosystem.
+> **Vercel Hobby Plan Details:** Vercel's free tier has been specifically configured in `vercel.json` to allow maximum `60-second timeouts` for the Python backend. This gives the LangGraph AI sufficient time to execute. Furthermore, heavy ML dependencies have been split into `requirements-ml.txt` to guarantee the backend stays well under Vercel's 250MB size limit.
 
 ---
 
-## 1. Deploy Backend ? Hugging Face Spaces
+## 1. Deploy Full Stack ? Vercel
 
-Because Andromeda is a monorepo, we use a **GitHub Action** to automatically sync the `backend/` directory to your Hugging Face Space on every push.
-
-### Step 1: Create the Space
-1. Sign up/Log in at [huggingface.co](https://huggingface.co) — no credit card needed.
-2. Go to [huggingface.co/spaces](https://huggingface.co/spaces) and click **Create new Space**.
-3. Settings:
-   - **Space Name:** `andromeda-backend`
-   - **License:** MIT (or your choice)
-   - **SDK:** Docker
-   - **Docker Template:** Blank
-   - **Space Hardware:** CPU Basic (Free)
-   - **Visibility:** Public
-4. Click **Create Space**.
-
-### Step 2: Configure Space Secrets
-In your new Space, go to **Settings** ? **Variables and secrets** ? **Secrets**. Add:
-- `LLM_PROVIDER` = `gemini`
-- `GEMINI_API_KEY` = `<your-key-from-aistudio.google.com>`
-- `GEMINI_MODEL` = `gemini-2.0-flash`
-- `DATABASE_URL` = `sqlite:////tmp/andromeda.db` (Must use /tmp for HF Spaces!)
-- `BUSINESS_TODAY` = `2025-01-15`
-- `AGENT_MODE` = `graph`
-- `TOOL_MODE` = `local`
-- `RAG_ENABLED` = `false`
-
-### Step 3: Link GitHub to Hugging Face
-To allow GitHub Actions to push code to your Space, you need a Hugging Face Access Token.
-1. In Hugging Face, go to **Settings** (Profile) ? **Access Tokens**.
-2. Click **Create new token**, name it `github-actions`, set Role to **Write**.
-3. Copy the token.
-
-Go to your **GitHub Repository** ? **Settings** ? **Secrets and variables** ? **Actions** ? **New repository secret**.
-Add these three secrets:
-1. `HF_TOKEN`: The write token you just copied.
-2. `HF_USERNAME`: Your Hugging Face username (e.g., `kunal-gh`).
-3. `HF_SPACE_NAME`: The name of your space (e.g., `andromeda-backend`).
-
-Next time you push to GitHub, the `.github/workflows/hf-deploy.yml` action will automatically deploy your backend!
-Your API URL will be: `https://<hf-username>-<hf-space-name>.hf.space`
-
----
-
-## 2. Deploy Frontend ? Vercel (New Account)
-
-1. Sign up at [vercel.com](https://vercel.com) with your new account — no credit card.
-2. Click **Add New Project** ? **Import Git Repository** ? select `Andromeda`.
-3. Vercel reads `vercel.json` and auto-configures the `frontend/` directory.
-4. Add **Environment Variable**:
+1. Log in to your Vercel account at [vercel.com](https://vercel.com).
+2. Click **Add New Project** ? **Import Git Repository**.
+3. Select the `Andromeda` repository.
+4. Leave the Framework Preset as **Next.js** and the Root Directory empty (Vercel reads `vercel.json` from the root and automatically handles both builders).
+5. Add the following **Environment Variables**:
    ```
-   NEXT_PUBLIC_API_BASE_URL=https://<hf-username>-<hf-space-name>.hf.space
+   LLM_PROVIDER=gemini
+   GEMINI_API_KEY=<your-key-from-aistudio.google.com>
+   GEMINI_MODEL=gemini-2.0-flash
+   DATABASE_URL=sqlite:////tmp/andromeda.db
+   BUSINESS_TODAY=2025-01-15
+   AGENT_MODE=graph
+   TOOL_MODE=local
+   RAG_ENABLED=false
    ```
-5. Click **Deploy** ?
+   *(Note: On Vercel, the SQLite database must be written to `/tmp` as it is the only writable directory in serverless functions).*
+6. Click **Deploy**.
 
-> **Important:** Once you have the Vercel URL, go back to your Hugging Face Space Settings and add a secret `FRONTEND_ORIGIN` set to `https://<your-app>.vercel.app` for correct CORS headers.
+The frontend will be available at the root URL (e.g. `https://andromeda.vercel.app`), and the backend API will be seamlessly routed under `/api` (e.g. `https://andromeda.vercel.app/api/health`).
 
 ---
 
-## Local Development
+## 2. Local Development
 
 ```bash
 # Copy env template and fill in your keys
@@ -89,3 +52,31 @@ docker compose up
 # Backend API: http://localhost:8000
 # API Docs (Swagger): http://localhost:8000/docs
 ```
+
+---
+
+## 3. CI/CD Pipeline (GitHub Actions)
+
+The `ci.yml` workflow runs automatically on every push to `main`:
+
+| Job | What it does | Signal |
+|---|---|---|
+| `backend-tests` | 60 pytest tests (policy + eval) | Reliability |
+| `backend-lint` | ruff lint check | Code quality |
+| `frontend-typecheck` | TypeScript type check | Type safety |
+| `evaluation-smoke` | 3-sample golden dataset eval | AI quality |
+| `docker-build` | Validates both Dockerfiles | Deployability |
+
+---
+
+## 4. Environment Variables Reference
+
+| Variable | Required | Description |
+|---|---|---|
+| `LLM_PROVIDER` | Yes | `gemini` / `groq` / `openai` / `mock` |
+| `GEMINI_API_KEY` | If gemini | Free at aistudio.google.com/apikey |
+| `DATABASE_URL` | No | Defaults to SQLite |
+| `AGENT_MODE` | No | `graph` (LangGraph) or `legacy` |
+| `RAG_ENABLED` | No | `true` to enable ChromaDB RAG |
+| `LANGFUSE_PUBLIC_KEY` | No | LangFuse observability (free at cloud.langfuse.com) |
+

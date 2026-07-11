@@ -1,16 +1,26 @@
 {
   "version": 2,
-  "name": "andromeda-frontend",
-  "buildCommand": "cd frontend && npm run build",
-  "outputDirectory": "frontend/.next",
-  "installCommand": "cd frontend && npm install",
-  "framework": "nextjs",
-  "git": {
-    "deploymentEnabled": {
-      "main": true
+  "builds": [
+    {
+      "src": "backend/api_vercel/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxDuration": 60
+      }
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/next"
     }
-  },
-  "env": {
-    "NEXT_PUBLIC_API_BASE_URL": "@andromeda_backend_url"
-  }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/backend/api_vercel/index.py"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
+    }
+  ]
 }
